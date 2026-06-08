@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7b0c39fd</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 9814c6f4</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '7b0c39fd';
+const ASSETS_VER = '9814c6f4';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2948,22 +2948,31 @@ class GameEngine {
 
   _drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, footY, alpha) {
     if (alpha <= 0.05) return;
-    const reflH = Math.min(44, tileH * 0.18);
+    const reflH = Math.min(48, tileH * 0.2);
+    const y0 = footY + 2;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, footY + 2, this.w, reflH);
+    ctx.rect(0, y0, this.w, reflH);
     ctx.clip();
-    ctx.globalAlpha = alpha * 0.2;
     ctx.translate(0, footY * 2);
     ctx.scale(1, -1);
+    ctx.globalAlpha = alpha * 0.3;
+    ctx.filter = 'brightness(1.12) saturate(1.04)';
     ctx.drawImage(img, drawX, topY, tileW, tileH);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = alpha * 0.16;
+    ctx.filter = 'brightness(1.9) saturate(1.18)';
+    ctx.drawImage(img, drawX, topY, tileW, tileH);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.filter = 'none';
+    const mask = ctx.createLinearGradient(0, y0, 0, y0 + reflH);
+    mask.addColorStop(0, 'rgba(255,255,255,1)');
+    mask.addColorStop(0.62, 'rgba(255,255,255,0.5)');
+    mask.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = mask;
+    ctx.fillRect(0, y0, this.w, reflH);
     ctx.restore();
-    const fade = ctx.createLinearGradient(0, footY + 2, 0, footY + reflH + 2);
-    fade.addColorStop(0, 'rgba(0,0,0,0)');
-    fade.addColorStop(0.55, 'rgba(0,0,0,0)');
-    fade.addColorStop(1, `rgba(8,12,24,${alpha * 0.45})`);
-    ctx.fillStyle = fade;
-    ctx.fillRect(0, footY + 2, this.w, reflH);
   }
 
   _drawSkylineShoreLine(ctx, footY, accent, alpha) {
@@ -4112,7 +4121,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=7b0c39fd').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=9814c6f4').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
