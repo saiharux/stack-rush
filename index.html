@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 3d2b879d</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 21bfa3f1</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -1320,6 +1320,8 @@ const ACHIEVEMENTS = [
   { id: 'city_tokyo', icon: '🗼', label: 'Rising Sun', desc: 'Unlock the Tokyo skyline', meta: () => isCityUnlocked('tokyo') },
   { id: 'city_london', icon: '🎡', label: 'Thames Tower', desc: 'Unlock the London skyline', meta: () => isCityUnlocked('london') },
   { id: 'city_dubai', icon: '🏜️', label: 'Desert Spire', desc: 'Unlock the Dubai skyline', meta: () => isCityUnlocked('dubai') },
+  { id: 'city_moscow', icon: '🏰', label: 'Red Square', desc: 'Unlock the Moscow skyline', meta: () => isCityUnlocked('moscow') },
+  { id: 'city_rome', icon: '🏛️', label: 'Eternal City', desc: 'Unlock the Rome skyline', meta: () => isCityUnlocked('rome') },
   { id: 'theme_sunset', icon: '🌅', label: 'Golden Hour', desc: 'Unlock the Sunset block theme', meta: () => isThemeUnlocked('sunset') },
   { id: 'theme_retro', icon: '👾', label: 'Arcade Glow', desc: 'Unlock the Retro block theme', meta: () => isThemeUnlocked('retro') },
   { id: 'theme_ocean', icon: '🌊', label: 'Deep Blue', desc: 'Unlock the Ocean block theme', meta: () => isThemeUnlocked('ocean') },
@@ -1559,6 +1561,8 @@ const CITIES = {
   tokyo:   { name: 'Tokyo',     unlockScore: 2000, skyline: 'cities/tokyo.png',   accent: '#ff6b9d' },
   london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff' },
   dubai:   { name: 'Dubai',     unlockScore: 3600, skyline: 'cities/dubai.png',   accent: '#ffd54f' },
+  moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350' },
+  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91' },
 };
 
 function getCity(id) { return CITIES[id] || CITIES.neon; }
@@ -4016,7 +4020,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=3d2b879d').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=21bfa3f1').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
