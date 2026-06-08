@@ -200,6 +200,20 @@
       50% { text-shadow: 0 0 36px rgba(255,107,157,1), 0 0 52px rgba(0,229,255,.35); transform: scale(1.04); }
     }
     #hud .score.mega { transform: scale(1.18); filter: drop-shadow(0 0 16px rgba(255,213,79,.7)); }
+    #pauseBtn {
+      pointer-events: auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; margin: -6px -8px 2px 0; padding: 0;
+      border-radius: 12px;
+      background: rgba(8, 6, 26, .55);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.92);
+      font-size: 1.05rem; line-height: 1;
+      box-shadow: 0 4px 16px rgba(0,0,0,.28);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    #pauseBtn:active { transform: scale(0.94); background: rgba(255,255,255,.12); }
     #missionEl {
       position: absolute; bottom: 52px; left: 10px; right: 10px;
       text-align: center; pointer-events: none; z-index: 5;
@@ -511,7 +525,8 @@
         <div class="blitz-time" id="blitzEl">1:30</div>
       </div>
     </div>
-    <div>
+    <div style="text-align:right;">
+      <button id="pauseBtn" class="hidden" type="button" aria-label="Pause game" title="Pause">⏸</button>
       <div class="level" id="levelEl">Floor 1</div>
       <div class="combo" id="comboEl"></div>
     </div>
@@ -3184,10 +3199,12 @@ function openPerkPicker(choices, onPick) {
       $('perkPicker').classList.add('hidden');
       perkPaused = false;
       last = 0;
+      syncPauseBtn();
     };
     box.appendChild(card);
   });
   $('perkPicker').classList.remove('hidden');
+  syncPauseBtn();
 }
 
 function resize() {
@@ -3220,7 +3237,15 @@ function show(which) {
   if (which === 'achievements') renderAchievementsPage();
   if (which === 'menu') updateCareerUI();
   if (which === 'menu' || which === 'loading' || which === 'how' || which === 'achievements') $('toastStack').innerHTML = '';
-  if (which === 'play') $('hint').textContent = 'Space · drop   |   Esc · menu';
+  if (which === 'play') {
+    $('hint').textContent = 'Tap to drop · ⏸ pause';
+  }
+  syncPauseBtn();
+}
+
+function syncPauseBtn() {
+  const showBtn = screen === 'play' && !optionsContext && !perkPaused;
+  $('pauseBtn').classList.toggle('hidden', !showBtn);
 }
 
 function updateOptionsUI() {
@@ -3228,6 +3253,7 @@ function updateOptionsUI() {
   $('optionsTitle').textContent = fromPlay ? 'Paused' : 'Options';
   $('resumeBtn').classList.toggle('hidden', !fromPlay);
   $('optionsBackBtn').textContent = fromPlay ? 'Main Menu' : 'Back';
+  syncPauseBtn();
 }
 
 function openOptions(ctx) {
@@ -3673,6 +3699,12 @@ $('optionsBtn').onclick = async () => { await audio.init(true); openOptions('men
 $('howBtn').onclick = () => show('how');
 $('howBackBtn').onclick = () => show('menu');
 $('resumeBtn').onclick = () => closeOptions(true);
+$('pauseBtn').onclick = async e => {
+  e.stopPropagation();
+  if (screen !== 'play' || optionsContext) return;
+  await audio.init(true);
+  openOptions('play');
+};
 $('optionsBackBtn').onclick = () => {
   if (optionsContext === 'play') {
     closeOptions(false);
@@ -3744,10 +3776,10 @@ window.addEventListener('keydown', async e => {
   }
 });
 window.addEventListener('resize', resize);
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
   if (document.hidden && screen === 'play' && !optionsContext && !perkPaused) {
-    paused = true;
-    last = 0;
+    await audio.init(true);
+    openOptions('play');
   }
 });
 
