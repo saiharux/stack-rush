@@ -619,6 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 397900b4</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -1047,13 +1048,6 @@ function earlyAlignEase(level) {
   return 1 + earlyEaseT(level) * 0.55;
 }
 
-/** Center alignment — fair when block widths differ (special blocks, precision shrink). */
-function landingAlignMis(a, top) {
-  const centerMis = Math.abs((a.left + a.width / 2) - (top.left + top.width / 2));
-  const edgeMis = Math.abs(a.left - top.left);
-  return Math.min(centerMis, edgeMis);
-}
-
 function speedForLevel(level) {
   const l = Math.max(1, level);
   let s;
@@ -1064,14 +1058,14 @@ function speedForLevel(level) {
   return s;
 }
 
-function rateLanding(mis, refW, perfectMul = 1, alignEase = 1) {
+function rateLanding(mis, sizeMis, refW, perfectMul = 1, alignEase = 1) {
   const ease = Math.max(1, alignEase);
-  const pR = (PERFECT_RATIO * perfectMul) * ease;
-  const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) * ease;
-  const goodR = GOOD_RATIO * ease;
-  if (mis <= refW * pR) return 'perfect';
-  if (mis <= refW * gR) return 'great';
-  if (mis <= refW * goodR) return 'good';
+  const pR = (PERFECT_RATIO * perfectMul) / ease;
+  const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) / ease;
+  const goodR = GOOD_RATIO / ease;
+  if (mis <= refW * pR && sizeMis <= refW * pR) return 'perfect';
+  if (mis <= refW * gR && sizeMis <= refW * gR) return 'great';
+  if (mis <= refW * goodR && sizeMis <= refW * goodR) return 'good';
   return 'none';
 }
 window.rateLanding = rateLanding;
@@ -2161,9 +2155,10 @@ class GameEngine {
       return;
     }
 
-    const mis = landingAlignMis(a, top);
+    const mis = Math.abs(a.left - top.left);
+    const sizeMis = Math.abs(a.width - top.width);
     const alignEase = earlyAlignEase(this.level);
-    const tier = rateLanding(mis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase);
+    const tier = rateLanding(mis, sizeMis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase);
     const perfect = tier === 'perfect';
 
     let landL = oL;
@@ -2391,10 +2386,10 @@ class GameEngine {
     const ax = this.worldToScreenX(a.left);
     const aw = this.worldToScreenW(a.width);
 
-    const mis = landingAlignMis(a, top);
+    const mis = Math.abs(a.left - top.left);
+    const sizeMis = Math.abs(a.width - top.width);
     const perfectMul = this.perkPerfectMul * (this.mode.perfectTight || 1);
-    const alignEase = earlyAlignEase(this.level);
-    const tier = rateLanding(mis, top.width, perfectMul, alignEase);
+    const tier = rateLanding(mis, sizeMis, top.width, perfectMul, earlyAlignEase(this.level));
     const guideColor = tier === 'perfect' ? '#00e5ff'
       : tier === 'great' ? '#ffd54f'
       : tier === 'good' ? '#69f0ae'
@@ -2406,7 +2401,9 @@ class GameEngine {
 
     const topY = this.worldToScreenY(top.top);
     const topH = ah;
-    const pR = (PERFECT_RATIO * perfectMul) * Math.max(1, alignEase);
+    const topLeft = this.worldToScreenX(top.left);
+    const topRight = this.worldToScreenX(top.left + top.width);
+    const pR = PERFECT_RATIO * perfectMul;
     const pulse = 0.55 + Math.sin(time * 6) * 0.25;
 
     ctx.save();
@@ -2416,6 +2413,38 @@ class GameEngine {
     const pL = this.worldToScreenX(top.left + top.width * pR);
     const pRpx = this.worldToScreenX(top.left + top.width * (1 - pR));
     ctx.fillRect(pL, topY, Math.max(2, pRpx - pL), topH);
+
+    ctx.globalAlpha = 0.16;
+    drawBlock3D(ctx, ax, landY, aw, ah, a.color, { ghost: true, palette: this.palette, time });
+
+    if (oW > 0) {
+      const ox = this.worldToScreenX(oL);
+      const ow = this.worldToScreenW(oW);
+      ctx.globalAlpha = tier === 'perfect' ? 0.42 : 0.28;
+      ctx.strokeStyle = guideColor;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = guideColor;
+      ctx.shadowBlur = tier === 'perfect' ? 14 : 6;
+      drawBlock3D(ctx, ox, landY, ow, ah, a.color, { ghost: true, palette: this.palette, time });
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = guideColor;
+    ctx.beginPath();
+    ctx.moveTo(topLeft, topY - 5);
+    ctx.lineTo(topLeft, topY + topH + 5);
+    ctx.moveTo(topRight, topY - 5);
+    ctx.lineTo(topRight, topY + topH + 5);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(ax - 10, landY + ah);
+    ctx.lineTo(ax + aw + 10, landY + ah);
+    ctx.stroke();
 
     const label = tier !== 'none' ? TIER_STYLE[tier].label.replace('!', '')
       : oW <= 0 ? 'MISS' : '';
@@ -4048,8 +4077,14 @@ syncSettingsUI();
 resize();
 runLoading();
 if ('serviceWorker' in navigator) {
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=e0a78dbc').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=397900b4').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
