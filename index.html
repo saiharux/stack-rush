@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 4b53b1ba</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 3987e500</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'cities11';
+const ASSETS_VER = '3987e500';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2781,7 +2781,7 @@ class GameEngine {
     if (alt < 0.05 || cosmic > 0.88) return;
     const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
     const fade = Math.min(1.35, alt * 1.35) * (1 - cosmic * 0.85);
-    const skylineCeil = this.worldToScreenY(this.groundY) - this.h * 0.22;
+    const skylineCeil = this.worldToScreenY(this.groundY) - this.h * 0.32;
     this.cloudLayers.forEach(layer => {
       const scroll = (rise * layer.parallax) % (this.h * 0.55);
       const bandY = layer.yBand * this.h * 0.42 - scroll;
@@ -2891,7 +2891,7 @@ class GameEngine {
 
     if (img && img.complete && img.naturalWidth > 0) {
       const vivid = !!getCity(this.cityId).vivid;
-      const targetH = Math.min(vivid ? 230 : 200, this.h * (vivid ? 0.32 : 0.28));
+      const targetH = Math.min(vivid ? 250 : 200, this.h * (vivid ? 0.36 : 0.28));
       const scale = targetH / img.height;
       const tileW = img.width * scale;
       const tileH = img.height * scale;
@@ -2900,8 +2900,8 @@ class GameEngine {
       const topY = groundY - tileH * groundNorm;
 
       ctx.save();
-      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.12) : cityAlpha;
-      if (vivid) ctx.filter = 'saturate(1.45) brightness(1.18) contrast(1.08)';
+      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.2) : cityAlpha;
+      if (vivid) ctx.filter = 'saturate(1.55) brightness(1.22) contrast(1.12)';
       for (let x = -parallax - tileW; x < this.w + tileW; x += tileW) {
         ctx.drawImage(img, x, topY, tileW, tileH);
       }
@@ -4024,7 +4024,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=4b53b1ba').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=3987e500').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
