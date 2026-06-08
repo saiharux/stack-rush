@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 21bfa3f1</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 77ffd13c</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -1561,8 +1561,8 @@ const CITIES = {
   tokyo:   { name: 'Tokyo',     unlockScore: 2000, skyline: 'cities/tokyo.png',   accent: '#ff6b9d' },
   london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff' },
   dubai:   { name: 'Dubai',     unlockScore: 3600, skyline: 'cities/dubai.png',   accent: '#ffd54f' },
-  moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350' },
-  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91' },
+  moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350' }, /* v2 skyline */
+  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91' }, /* v2 skyline */
 };
 
 function getCity(id) { return CITIES[id] || CITIES.neon; }
@@ -4020,7 +4020,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=21bfa3f1').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=77ffd13c').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
