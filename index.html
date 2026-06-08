@@ -201,19 +201,32 @@
     }
     #hud .score.mega { transform: scale(1.18); filter: drop-shadow(0 0 16px rgba(255,213,79,.7)); }
     #pauseBtn {
+      position: absolute;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(14px, env(safe-area-inset-bottom));
+      z-index: 8;
       pointer-events: auto;
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; margin: -6px -8px 2px 0; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      width: auto; min-width: 0; margin: 0; padding: 10px 14px;
       border-radius: 12px;
-      background: rgba(8, 6, 26, .55);
-      border: 1px solid rgba(255,255,255,.14);
-      color: rgba(255,255,255,.92);
-      font-size: 1.05rem; line-height: 1;
-      box-shadow: 0 4px 16px rgba(0,0,0,.28);
+      font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(255,255,255,.9);
+      background: rgba(12, 10, 32, .86);
+      border: 1px solid rgba(0, 229, 255, .32);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .38), 0 0 14px rgba(0, 229, 255, .14);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
-    #pauseBtn:active { transform: scale(0.94); background: rgba(255,255,255,.12); }
+    #pauseBtn svg {
+      width: 13px; height: 13px; flex-shrink: 0;
+      fill: #00e5ff;
+      filter: drop-shadow(0 0 6px rgba(0,229,255,.55));
+    }
+    #pauseBtn:active {
+      transform: scale(0.96);
+      border-color: rgba(124, 77, 255, .55);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .35), 0 0 20px rgba(124, 77, 255, .28);
+    }
     #missionEl {
       position: absolute; bottom: 52px; left: 10px; right: 10px;
       text-align: center; pointer-events: none; z-index: 5;
@@ -525,12 +538,15 @@
         <div class="blitz-time" id="blitzEl">1:30</div>
       </div>
     </div>
-    <div style="text-align:right;">
-      <button id="pauseBtn" class="hidden" type="button" aria-label="Pause game" title="Pause">⏸</button>
+    <div>
       <div class="level" id="levelEl">Floor 1</div>
       <div class="combo" id="comboEl"></div>
     </div>
   </div>
+  <button id="pauseBtn" class="hidden" type="button" aria-label="Pause game" title="Pause">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+    <span>Pause</span>
+  </button>
   <div id="hint" class="hidden">Tap or press Space to drop</div>
   <div id="missionEl" class="hidden"></div>
   <div id="challengeBanner"><span></span></div>
@@ -3238,7 +3254,7 @@ function show(which) {
   if (which === 'menu') updateCareerUI();
   if (which === 'menu' || which === 'loading' || which === 'how' || which === 'achievements') $('toastStack').innerHTML = '';
   if (which === 'play') {
-    $('hint').textContent = 'Tap to drop · ⏸ pause';
+    $('hint').textContent = 'Tap to drop';
   }
   syncPauseBtn();
 }
@@ -3277,6 +3293,7 @@ function closeOptions(resume) {
     if (resume) last = 0;
   }
   optionsContext = null;
+  syncPauseBtn();
 }
 
 function setBarProgress(pct) {
