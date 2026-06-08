@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build a91fceac</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7b0c39fd</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'a91fceac';
+const ASSETS_VER = '7b0c39fd';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2045,8 +2045,11 @@ class GameEngine {
       const top = this.stack[this.stack.length - 1];
       const ease = earlyEaseT(this.level);
       const sw = this.worldToScreenW(this.active.width);
-      const amp = (this.w - sw) / 2 * (1 - ease * 0.22);
+      const pad = sw * 0.08;
       const topLeftScreen = this.worldToScreenX(top.left);
+      const rawAmp = (this.w - sw) / 2 * (1 - ease * 0.22);
+      const maxAmp = Math.min(topLeftScreen + pad, this.w - sw + pad - topLeftScreen);
+      const amp = Math.max(0, Math.min(rawAmp, maxAmp));
       const mirror = this.bossFloor?.id === 'mirror';
       const wave = (mirror ? -1 : 1) * (Math.sin(this.moveT) * 0.93 + Math.sin(this.moveT * 2.17) * 0.07);
       let screenLeft = topLeftScreen + wave * amp;
@@ -2058,8 +2061,6 @@ class GameEngine {
         const windMul = 1 - ease * 0.65;
         screenLeft += (Math.sin(this.windPhase) * 28 + Math.sin(this.windPhase * 0.61) * 12) * windMul;
       }
-      const pad = sw * 0.08;
-      screenLeft = Math.max(-pad, Math.min(this.w - sw + pad, screenLeft));
       const prevLeft = this.active.left;
       this.active.left = this.screenToWorldX(screenLeft);
       this.activeVelX = (this.active.left - prevLeft) / Math.max(dt, 0.001);
@@ -4111,7 +4112,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=a91fceac').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=7b0c39fd').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
