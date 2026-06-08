@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 71a1a238</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 3626737c</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '71a1a238';
+const ASSETS_VER = '3626737c';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -975,8 +975,8 @@ const MIN_W_RATIO = 0.1;
 const METERS_PER_FLOOR = 3;
 
 const ALTITUDE_ZONES = [
-  { m: 0,   name: 'Street Level',   color: '#9e9e9e', skyTop: '#3a6a8a', skyMid: '#5a8aa8', skyBot: '#1a2840', sun: '#ffd080' },
-  { m: 18,  name: 'Rooftops',       color: '#80d8ff', skyTop: '#4a9fd4', skyMid: '#6eb8e8', skyBot: '#2a4868', sun: '#ffe090' },
+  { m: 0,   name: 'Street Level',   color: '#c9a0dc', skyTop: '#1a1838', skyMid: '#3a3458', skyBot: '#4a3848', sun: '#ff8c5a' },
+  { m: 18,  name: 'Rooftops',       color: '#90b8e8', skyTop: '#283050', skyMid: '#445070', skyBot: '#322838', sun: '#ffb070' },
   { m: 45,  name: 'Cloud Layer',    color: '#e3f2fd', skyTop: '#7ec8f0', skyMid: '#a8daf8', skyBot: '#5a90b8', sun: '#fff8e8' },
   { m: 90,  name: 'High Altitude',  color: '#b388ff', skyTop: '#5a78c8', skyMid: '#7888d8', skyBot: '#3a4888', sun: '#ffd8a8' },
   { m: 150, name: 'Stratosphere',   color: '#7c4dff', skyTop: '#283878', skyMid: '#4050a0', skyBot: '#182050', sun: '#ffb878' },
@@ -1516,7 +1516,7 @@ const THEMES = {
       { main: '#40c4ff', dark: '#0091ea', edge: '#80d8ff' },
       { main: '#e040fb', dark: '#aa00ff', edge: '#ea80fc' },
     ],
-    bg: ['#06041a', '#12103a', '#1a1048'],
+    bg: ['#080612', '#14102a', '#241828'],
     bgHigh: ['#101840', '#283878', '#4050a0'],
   },
   sunset: {
@@ -2477,9 +2477,6 @@ class GameEngine {
     const topH = ah;
     const topLeft = this.worldToScreenX(top.left);
     const topRight = this.worldToScreenX(top.left + top.width);
-    const ease = alignEaseForLevel(this.level);
-    const pPx = this.worldToScreenW(top.width * PERFECT_RATIO * perfectMul * ease);
-    const zoneCx = (topLeft + topRight) / 2;
 
     ctx.save();
     ctx.shadowBlur = 0;
@@ -2487,19 +2484,8 @@ class GameEngine {
     ctx.globalAlpha = 0.22;
     drawBlock3D(ctx, ax, landY, aw, ah, a.color, { ghost: true, palette: this.palette, time });
 
-    if (tier === 'perfect' || tier === 'great') {
-      const pulse = 0.14 + Math.sin(time * 6) * 0.06;
-      ctx.globalAlpha = tier === 'perfect' ? pulse + 0.1 : pulse;
-      const zg = ctx.createLinearGradient(zoneCx - pPx / 2, topY, zoneCx + pPx / 2, topY);
-      zg.addColorStop(0, 'rgba(0,0,0,0)');
-      zg.addColorStop(0.5, guideColor + (tier === 'perfect' ? '44' : '28'));
-      zg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = zg;
-      ctx.fillRect(zoneCx - pPx / 2, topY - 6, pPx, topH + 12);
-    }
-
-    ctx.globalAlpha = tier === 'perfect' ? 0.95 : 0.75;
-    ctx.lineWidth = tier === 'perfect' ? 2.5 : 2;
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = 2;
     ctx.strokeStyle = guideColor;
     ctx.beginPath();
     ctx.moveTo(topLeft, topY - 5);
@@ -2912,13 +2898,16 @@ class GameEngine {
 
   _drawHorizonGlow(ctx, gY, alt, cosmic) {
     if (cosmic > 0.6) return;
+    const evening = Math.max(0, 1 - this.altitudeMeters / 72);
     const glow = ctx.createLinearGradient(0, gY - 120, 0, gY + 40);
-    const accent = this.palette[0].main;
+    const accent = evening > 0.25
+      ? lerpHex(this.palette[0].main, '#ff8a55', evening * 0.7)
+      : this.palette[0].main;
     glow.addColorStop(0, 'rgba(0,0,0,0)');
-    glow.addColorStop(0.55, accent + '18');
-    glow.addColorStop(0.85, accent + '35');
-    glow.addColorStop(1, accent + '12');
-    ctx.globalAlpha = (1 - cosmic) * (0.5 + alt * 0.3);
+    glow.addColorStop(0.5, lerpHex(accent, '#ff6b4a', evening * 0.35) + '22');
+    glow.addColorStop(0.82, accent + (evening > 0.25 ? '40' : '35'));
+    glow.addColorStop(1, lerpHex(accent, '#ffd0a0', evening * 0.4) + '18');
+    ctx.globalAlpha = (1 - cosmic) * (0.55 + alt * 0.25 + evening * 0.15);
     ctx.fillStyle = glow;
     ctx.fillRect(0, gY - 120, this.w, 160);
     ctx.globalAlpha = 1;
@@ -3064,6 +3053,7 @@ class GameEngine {
     const accent = this.palette[0].main;
     const accent2 = this.palette[2].main;
     const zoneMix = Math.min(1, zb.idx * 0.14 + zb.t * 0.14);
+    const evening = Math.max(0, 1 - this.altitudeMeters / 80);
 
     const top = lerpHex(lerpHex(sky.top, accent2, 0.08), zb.zone.skyTop, zoneMix * 0.72);
     const mid = lerpHex(lerpHex(sky.mid, accent, 0.06), zb.zone.skyMid, zoneMix * 0.68);
@@ -3077,16 +3067,17 @@ class GameEngine {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    const vibe = ctx.createRadialGradient(this.w * 0.5, this.h * 0.35, 0, this.w * 0.5, this.h * 0.35, this.w * 0.85);
-    vibe.addColorStop(0, lerpHex(accent, zb.zone.color, zoneMix * 0.55) + '22');
-    vibe.addColorStop(0.5, lerpHex(accent2, zb.next.color, zb.t * 0.4) + '12');
+    const vibe = ctx.createRadialGradient(this.w * 0.5, this.h * (0.42 + evening * 0.08), 0, this.w * 0.5, this.h * 0.45, this.w * 0.9);
+    const vibeA = evening > 0.2 ? lerpHex(accent, '#ff7a50', evening * 0.45) : accent;
+    vibe.addColorStop(0, lerpHex(vibeA, zb.zone.color, zoneMix * 0.55) + (evening > 0.2 ? '28' : '22'));
+    vibe.addColorStop(0.5, lerpHex(accent2, '#ffb878', evening * 0.35) + '14');
     vibe.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = vibe;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    const sunX = this.w * 0.72;
-    const sunY = this.h * 0.16 + alt * 8;
-    const sunStr = (1 - cosmic) * (0.85 - alt * 0.2);
+    const sunX = this.w * (0.78 - evening * 0.06);
+    const sunY = this.h * (0.2 + evening * 0.06) + alt * 6;
+    const sunStr = (1 - cosmic) * (0.72 - alt * 0.18 + evening * 0.12);
     if (sunStr > 0.05) {
       this._drawSkyRays(ctx, sunX, sunY, sunStr * 0.7, t);
       const sunR = 26 + (1 - cosmic) * 8;
@@ -4155,7 +4146,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=71a1a238').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=3626737c').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
