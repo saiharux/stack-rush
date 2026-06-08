@@ -612,6 +612,7 @@
       <p class="theme-label" id="hapticsHint" style="margin-top:2px;opacity:.55;font-size:.68rem;line-height:1.4;">Checking device…</p>
       <p class="theme-label" id="hapticsStatus" style="margin-top:4px;opacity:.65;font-size:.68rem;line-height:1.35;"></p>
       <button class="secondary" id="hapticsTestBtn" type="button" style="width:100%;margin:8px 0 0;padding:10px 14px;font-size:.82rem;">Test Rumble</button>
+      <p class="theme-label" id="hapticsTestResult" style="margin-top:8px;opacity:.8;font-size:.72rem;line-height:1.4;display:none;"></p>
       <div class="section-divider"></div>
       <p class="theme-label">Block theme <span id="themeUnlockHint"></span></p>
       <div class="theme-grid" id="themeGrid"></div>
@@ -1046,6 +1047,13 @@ function earlyAlignEase(level) {
   return 1 + earlyEaseT(level) * 0.55;
 }
 
+/** Center alignment — fair when block widths differ (special blocks, precision shrink). */
+function landingAlignMis(a, top) {
+  const centerMis = Math.abs((a.left + a.width / 2) - (top.left + top.width / 2));
+  const edgeMis = Math.abs(a.left - top.left);
+  return Math.min(centerMis, edgeMis);
+}
+
 function speedForLevel(level) {
   const l = Math.max(1, level);
   let s;
@@ -1056,14 +1064,14 @@ function speedForLevel(level) {
   return s;
 }
 
-function rateLanding(mis, sizeMis, refW, perfectMul = 1, alignEase = 1) {
+function rateLanding(mis, refW, perfectMul = 1, alignEase = 1) {
   const ease = Math.max(1, alignEase);
-  const pR = (PERFECT_RATIO * perfectMul) / ease;
-  const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) / ease;
-  const goodR = GOOD_RATIO / ease;
-  if (mis <= refW * pR && sizeMis <= refW * pR) return 'perfect';
-  if (mis <= refW * gR && sizeMis <= refW * gR) return 'great';
-  if (mis <= refW * goodR && sizeMis <= refW * goodR) return 'good';
+  const pR = (PERFECT_RATIO * perfectMul) * ease;
+  const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) * ease;
+  const goodR = GOOD_RATIO * ease;
+  if (mis <= refW * pR) return 'perfect';
+  if (mis <= refW * gR) return 'great';
+  if (mis <= refW * goodR) return 'good';
   return 'none';
 }
 window.rateLanding = rateLanding;
@@ -1410,10 +1418,11 @@ function showToast(text, opts = {}) {
   if (!stack) return;
 
   const now = performance.now();
-  if (screen === 'play' && engine && !engine.over) {
+  const optionsOpen = optionsContext != null;
+  if (screen === 'play' && engine && !engine.over && !optionsOpen && priority !== 'milestone') {
     if (priority === 'low') return;
     if (priority === 'normal' && now < toastCooldownUntil) return;
-    if (priority !== 'milestone') toastCooldownUntil = now + 3200;
+    toastCooldownUntil = now + 3200;
   }
 
   const el = document.createElement('div');
@@ -2152,10 +2161,9 @@ class GameEngine {
       return;
     }
 
-    const mis = Math.abs(a.left - top.left);
-    const sizeMis = Math.abs(a.width - top.width);
+    const mis = landingAlignMis(a, top);
     const alignEase = earlyAlignEase(this.level);
-    const tier = rateLanding(mis, sizeMis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase);
+    const tier = rateLanding(mis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase);
     const perfect = tier === 'perfect';
 
     let landL = oL;
@@ -2384,10 +2392,10 @@ class GameEngine {
     const ax = this.worldToScreenX(a.left);
     const aw = this.worldToScreenW(a.width);
 
-    const mis = Math.abs(a.left - top.left);
-    const sizeMis = Math.abs(a.width - top.width);
+    const mis = landingAlignMis(a, top);
     const perfectMul = this.perkPerfectMul * (this.mode.perfectTight || 1);
-    const tier = rateLanding(mis, sizeMis, top.width, perfectMul, earlyAlignEase(this.level));
+    const alignEase = earlyAlignEase(this.level);
+    const tier = rateLanding(mis, top.width, perfectMul, alignEase);
     const guideColor = tier === 'perfect' ? '#00e5ff'
       : tier === 'great' ? '#ffd54f'
       : tier === 'good' ? '#69f0ae'
@@ -2401,7 +2409,7 @@ class GameEngine {
     const topH = ah;
     const topLeft = this.worldToScreenX(top.left);
     const topRight = this.worldToScreenX(top.left + top.width);
-    const pR = PERFECT_RATIO * perfectMul;
+    const pR = (PERFECT_RATIO * perfectMul) * Math.max(1, alignEase);
     const pulse = 0.55 + Math.sin(time * 6) * 0.25;
 
     ctx.save();
@@ -3221,14 +3229,21 @@ function hapticDeviceInfo() {
 }
 
 function hapticVisual(kind) {
-  const wrap = $('wrap');
-  if (!wrap) return;
   const strong = kind === 'test' || kind === 'perfect' || kind === 'combo' || kind === 'gameover';
-  wrap.style.transition = 'box-shadow .05s ease';
-  wrap.style.boxShadow = strong
-    ? '0 0 0 4px rgba(0,229,255,.9), 0 0 40px rgba(0,229,255,.35)'
-    : '0 0 0 2px rgba(124,77,255,.7)';
-  setTimeout(() => { wrap.style.boxShadow = '0 0 80px rgba(0, 229, 255, 0.08)'; }, strong ? 180 : 90);
+  const targets = [$('wrap'), document.querySelector('#optionsOverlay .settings-panel')].filter(Boolean);
+  targets.forEach(el => {
+    el.style.transition = 'box-shadow .05s ease, border-color .05s ease';
+    el.style.boxShadow = strong
+      ? '0 0 0 4px rgba(0,229,255,.9), 0 0 40px rgba(0,229,255,.35)'
+      : '0 0 0 2px rgba(124,77,255,.7)';
+    if (el.classList?.contains('settings-panel')) el.style.borderColor = '#00e5ff';
+  });
+  setTimeout(() => {
+    targets.forEach(el => {
+      if (el.id === 'wrap') el.style.boxShadow = '0 0 80px rgba(0, 229, 255, 0.08)';
+      else { el.style.boxShadow = ''; el.style.borderColor = ''; }
+    });
+  }, strong ? 220 : 100);
 }
 
 function hapticPulse(kind, opts = {}) {
@@ -3969,21 +3984,38 @@ $('hapticsToggle').onclick = () => {
   if (on) hapticPulse('good');
 };
 $('hapticsTestBtn').onclick = async () => {
+  const result = $('hapticsTestResult');
+  const btn = $('hapticsTestBtn');
   if (!loadHaptics()) {
-    showToast('Rumble is off', { color: '#ff6b9d', sub: 'Turn on Rumble feedback above', duration: 2200 });
+    if (result) {
+      result.style.display = 'block';
+      result.style.color = '#ff6b9d';
+      result.textContent = 'Turn on Rumble feedback above first.';
+    }
     return;
   }
-  await audio.init(true);
-  hapticPulse('test');
+  hapticVisual('test');
+  if (navigator.vibrate) navigator.vibrate(HAPTIC_VIBRATE.test);
+  btn.style.borderColor = '#00e5ff';
+  btn.style.color = '#00e5ff';
+  setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 400);
+  try { await audio.init(true); audio.playHapticThump('test'); } catch { /* audio optional */ }
   const { ios, vibe } = hapticDeviceInfo();
-  showToast(vibe ? 'Motor should buzz now' : 'No motor vibration on this device', {
+  const msg = vibe
+    ? 'If you felt a buzz + cyan flash + thump, rumble works.'
+    : ios
+      ? 'iPhone cannot buzz the motor in browser games. You should see a cyan flash and hear a thump (volume up).'
+      : 'You should see a cyan flash and hear a thump. Turn volume up.';
+  if (result) {
+    result.style.display = 'block';
+    result.style.color = '#00e5ff';
+    result.textContent = msg;
+  }
+  showToast(vibe ? 'Rumble test sent' : 'Rumble test (no motor on iPhone)', {
     color: '#00e5ff',
-    sub: ios
-      ? 'iPhone: listen for a thump + cyan screen flash. Turn volume up.'
-      : vibe
-        ? 'Android: feel the buzz + hear the thump + see the flash'
-        : 'You should hear a thump and see a cyan screen flash',
-    duration: 4500,
+    sub: msg,
+    duration: 5000,
+    priority: 'milestone',
   });
 };
 $('musicToggle').onclick = () => {
@@ -4052,7 +4084,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=4defc17c').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=ac790891').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
