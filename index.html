@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 14e4a26a</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 4b53b1ba</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -1562,7 +1562,7 @@ const CITIES = {
   london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff' },
   dubai:   { name: 'Dubai',     unlockScore: 3600, skyline: 'cities/dubai.png',   accent: '#ffd54f' },
   moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350', vivid: true },
-  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91' },
+  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91', vivid: true },
 };
 
 function getCity(id) { return CITIES[id] || CITIES.neon; }
@@ -1571,11 +1571,12 @@ const CityBank = {
   images: {},
   ready: false,
   preload() {
+    this.images = {};
     const jobs = Object.entries(CITIES).map(([id, city]) => new Promise(resolve => {
       const img = new Image();
       img.onload = () => { this.images[id] = img; resolve(); };
       img.onerror = () => { console.warn('city skyline failed', id); resolve(); };
-      img.src = `${ASSETS_BASE}${city.skyline}?v=${ASSETS_VER}`;
+      img.src = `${ASSETS_BASE}${city.skyline}?v=${ASSETS_VER}&c=${id}`;
     }));
     return Promise.all(jobs).then(() => { this.ready = true; });
   },
@@ -2780,10 +2781,11 @@ class GameEngine {
     if (alt < 0.05 || cosmic > 0.88) return;
     const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
     const fade = Math.min(1.35, alt * 1.35) * (1 - cosmic * 0.85);
+    const skylineCeil = this.worldToScreenY(this.groundY) - this.h * 0.22;
     this.cloudLayers.forEach(layer => {
       const scroll = (rise * layer.parallax) % (this.h * 0.55);
-      const bandY = layer.yBand * this.h - scroll;
-      if (bandY < -120 || bandY > this.h + 120) return;
+      const bandY = layer.yBand * this.h * 0.42 - scroll;
+      if (bandY < -120 || bandY > skylineCeil) return;
       for (let p = 0; p < layer.puffs; p++) {
         const px = rng(layer.seed + p * 5.1) * (this.w + 160) - 80;
         const py = bandY + rng(layer.seed + p * 2.7) * 18;
@@ -4022,7 +4024,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=14e4a26a').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=4b53b1ba').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
