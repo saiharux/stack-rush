@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build cb794724</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 68f1f934</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'cb794724';
+const ASSETS_VER = '68f1f934';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -964,6 +964,8 @@ class AudioEngine {
 const BLOCK_H = 32;
 const BLOCK_D = 14; // 3D depth
 const SKYLINE_BASE_INSET = 8; // water strip at bottom of skyline PNGs (see generate_city_skylines.py)
+const SKYLINE_SCREEN_FOOT = 0.58; // distant horizon at game start (decoupled from ground blocks)
+const SKYLINE_CLIMB_SCROLL = 0.42; // scrollUp span before skyline foot tracks the platform
 const GRAVITY = 5200;
 const DROP_BOOST = 520;
 const PERFECT_RATIO = 0.07;
@@ -1751,6 +1753,14 @@ class GameEngine {
 
   blockScreenH() {
     return BLOCK_H * this.viewZoom;
+  }
+
+  /** City skyline foot — raised early so blocks don't cover it; blends to ground as tower climbs */
+  _skylineFootScreenY() {
+    const groundY = this.worldToScreenY(this.groundY);
+    const fixedFootY = this.h * SKYLINE_SCREEN_FOOT;
+    const climbT = Math.min(1, this.scrollUp / Math.max(1, this.h * SKYLINE_CLIMB_SCROLL));
+    return fixedFootY + (groundY - fixedFootY) * climbT;
   }
 
   _genStars(n) {
@@ -2781,7 +2791,7 @@ class GameEngine {
     if (alt < 0.05 || cosmic > 0.88) return;
     const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
     const fade = Math.min(1.35, alt * 1.35) * (1 - cosmic * 0.85);
-    const skylineCeil = this.worldToScreenY(this.groundY) - this.h * 0.32;
+    const skylineCeil = this._skylineFootScreenY() - this.h * 0.32;
     this.cloudLayers.forEach(layer => {
       const scroll = (rise * layer.parallax) % (this.h * 0.55);
       const bandY = layer.yBand * this.h * 0.42 - scroll;
@@ -2883,10 +2893,10 @@ class GameEngine {
 
   _drawCitySkyline(ctx, t) {
     const cosmic = this.cosmicBlend;
-    const cityAlpha = Math.max(0, 0.88 - this.altitudeMeters / 32 - cosmic * 0.65);
+    const cityAlpha = Math.max(0, 0.92 - this.altitudeMeters / 55 - cosmic * 0.55);
     if (cityAlpha <= 0.03) return;
 
-    const groundY = this.worldToScreenY(this.groundY);
+    const skylineFootY = this._skylineFootScreenY();
     const img = CityBank.get(this.cityId);
 
     if (img && img.complete && img.naturalWidth > 0) {
@@ -2895,9 +2905,9 @@ class GameEngine {
       const scale = targetH / img.height;
       const tileW = img.width * scale;
       const tileH = img.height * scale;
-      const parallax = (this.skyScroll * 10) % tileW;
+      const parallax = (this.skyScroll * 6) % tileW;
       const groundNorm = (img.height - SKYLINE_BASE_INSET) / img.height;
-      const topY = groundY - tileH * groundNorm;
+      const topY = skylineFootY - tileH * groundNorm;
 
       ctx.save();
       ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
@@ -2913,7 +2923,7 @@ class GameEngine {
     let x = -20;
     while (x < this.w + 40) {
       const bw = 18 + rng(x) * 36, bh = 28 + rng(x + 1) * 75;
-      const by = groundY - bh;
+      const by = skylineFootY - bh;
       ctx.fillStyle = `rgba(12,14,32,${cityAlpha * (0.55 + rng(x + 2) * 0.25)})`;
       rr(ctx, x, by, bw, bh, 2); ctx.fill();
       if (rng(x + 5) > 0.5 && bh > 40) {
@@ -4024,7 +4034,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=cb794724').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=68f1f934').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
