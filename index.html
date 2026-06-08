@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 42e46898</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 4b4530c4</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -2405,21 +2405,10 @@ class GameEngine {
     const topRight = this.worldToScreenX(top.left + top.width);
 
     ctx.save();
+    ctx.shadowBlur = 0;
 
-    ctx.globalAlpha = 0.16;
+    ctx.globalAlpha = 0.22;
     drawBlock3D(ctx, ax, landY, aw, ah, a.color, { ghost: true, palette: this.palette, time });
-
-    if (oW > 0) {
-      const ox = this.worldToScreenX(oL);
-      const ow = this.worldToScreenW(oW);
-      ctx.globalAlpha = tier === 'perfect' ? 0.42 : 0.28;
-      ctx.strokeStyle = guideColor;
-      ctx.lineWidth = 2;
-      ctx.shadowColor = guideColor;
-      ctx.shadowBlur = tier === 'perfect' ? 14 : 6;
-      drawBlock3D(ctx, ox, landY, ow, ah, a.color, { ghost: true, palette: this.palette, time });
-      ctx.shadowBlur = 0;
-    }
 
     ctx.globalAlpha = 0.75;
     ctx.lineWidth = 2;
@@ -3073,15 +3062,10 @@ function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
     ctx.shadowBlur = (16 + combo * 4) * pulse * (hot ? 1.25 : 1);
   }
 
-  const fg = ctx.createLinearGradient(x, dy, x, dy + dh);
   if (ghost) {
-    const gg = ctx.createLinearGradient(x, dy, x, dy + dh);
-    gg.addColorStop(0, pal.main + '55');
-    gg.addColorStop(1, pal.dark + '33');
-    ctx.fillStyle = gg;
-    ctx.strokeStyle = pal.edge + '66';
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = pal.main + '44';
   } else {
+    const fg = ctx.createLinearGradient(x, dy, x, dy + dh);
     fg.addColorStop(0, lightenHex(pal.main, 0.12));
     fg.addColorStop(0.35, pal.main);
     fg.addColorStop(1, shadeHex(pal.dark, -0.08));
@@ -3089,50 +3073,6 @@ function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
   }
   rr(ctx, x, dy, w, dh, r);
   ctx.fill();
-  if (ghost) {
-    rr(ctx, x + 0.5, dy + 0.5, w - 1, dh - 1, r);
-    ctx.stroke();
-  }
-
-  if (!ghost) {
-    const lg = ctx.createLinearGradient(x, dy, x + w * 0.35, dy);
-    lg.addColorStop(0, 'rgba(255,255,255,0.22)');
-    lg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = lg;
-    rr(ctx, x + 2, dy + 2, w * 0.38, dh - 4, Math.max(2, r - 2));
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    rr(ctx, x + 5, dy + 4, Math.max(8, w - 14), Math.min(6, dh * 0.18), 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(x, dy + dh - Math.max(2, dh * 0.1), w, Math.max(2, dh * 0.1));
-
-    ctx.strokeStyle = isTop ? pal.edge + '99' : 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = isTop ? 1.5 : 1;
-    rr(ctx, x + 0.5, dy + 0.5, w - 1, dh - 1, r);
-    ctx.stroke();
-
-    if (isStacked) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x + 2, dy + dh - 0.5);
-      ctx.lineTo(x + w - 2, dy + dh - 0.5);
-      ctx.stroke();
-    }
-    if (zoneGlow > 0.05) {
-      const pulse = 0.55 + Math.sin(time * 3.2 + ci) * 0.25;
-      ctx.strokeStyle = lerpHex(pal.edge, '#e8f4ff', zoneGlow * 0.6) + Math.round(90 + zoneGlow * 120 * pulse).toString(16).padStart(2, '0');
-      ctx.lineWidth = 1 + zoneGlow * 1.8;
-      ctx.shadowColor = '#c8e8ff';
-      ctx.shadowBlur = 8 + zoneGlow * 18 * pulse;
-      rr(ctx, x + 0.5, dy + 0.5, w - 1, dh - 1, r);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-  }
   ctx.shadowBlur = 0;
 }
 
@@ -4069,7 +4009,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=42e46898').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=4b4530c4').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
