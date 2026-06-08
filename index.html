@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build fb4e28c5</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 612ff292</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'fb4e28c5';
+const ASSETS_VER = '612ff292';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2892,30 +2892,6 @@ class GameEngine {
     ctx.globalAlpha = 1;
   }
 
-  _drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, footY, alpha) {
-    if (alpha <= 0.05) return;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, footY, this.w, Math.min(40, tileH * 0.16));
-    ctx.clip();
-    ctx.globalAlpha = alpha * 0.14;
-    ctx.translate(0, footY * 2);
-    ctx.scale(1, -1);
-    ctx.drawImage(img, drawX, topY, tileW, tileH);
-    ctx.restore();
-  }
-
-  _drawSkylineAccentGlow(ctx, footY, accent, alpha, time) {
-    if (alpha <= 0.05) return;
-    const pulse = 0.88 + 0.12 * Math.sin(time * 0.55);
-    const g = ctx.createLinearGradient(0, footY - 48, 0, footY + 18);
-    g.addColorStop(0, accent + '00');
-    g.addColorStop(0.5, accent + Math.floor(alpha * pulse * 32).toString(16).padStart(2, '0'));
-    g.addColorStop(1, accent + '00');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, footY - 48, this.w, 66);
-  }
-
   _drawCitySkyline(ctx, t) {
     const cosmic = this.cosmicBlend;
     const cityAlpha = Math.max(0, 0.92 - this.altitudeMeters / 55 - cosmic * 0.55);
@@ -2934,15 +2910,12 @@ class GameEngine {
       const topY = skylineFootY - tileH * groundNorm;
       const focus = getCity(this.cityId).skylineFocus ?? 0.5;
       const drawX = Math.min(0, Math.max(this.w - tileW, this.w * 0.5 - focus * img.width * scale));
-      const accent = getCity(this.cityId).accent || '#80d8ff';
 
       ctx.save();
       ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
       if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
       ctx.drawImage(img, drawX, topY, tileW, tileH);
       ctx.restore();
-      this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
-      this._drawSkylineAccentGlow(ctx, skylineFootY, accent, cityAlpha, t);
       return;
     }
 
@@ -3007,7 +2980,9 @@ class GameEngine {
 
     this._drawMotes(ctx, rise, alt, cosmic, t);
     this._drawCloudLayers(ctx, rise, alt, cosmic, t);
-    this._drawHorizonGlow(ctx, this.worldToScreenY(this.groundY), alt, cosmic);
+    const cityVisible = Math.max(0, 0.92 - this.altitudeMeters / 55 - cosmic * 0.55) > 0.03;
+    const horizonY = cityVisible ? this._skylineFootScreenY() : this.worldToScreenY(this.groundY);
+    this._drawHorizonGlow(ctx, horizonY, alt, cosmic);
 
     if (cosmic > 0.08) {
       const starBright = cosmic * 0.7 + alt * 0.15;
@@ -4057,7 +4032,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=fb4e28c5').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=612ff292').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
