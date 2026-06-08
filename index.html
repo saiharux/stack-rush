@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build ff261834</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7b0c39fd</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'ff261834';
+const ASSETS_VER = '7b0c39fd';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -975,8 +975,8 @@ const MIN_W_RATIO = 0.1;
 const METERS_PER_FLOOR = 3;
 
 const ALTITUDE_ZONES = [
-  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#03050c', skyMid: '#090e1c', skyBot: '#0a0e18', sun: '#000000' },
-  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#050810', skyMid: '#0a1020', skyBot: '#0c121c', sun: '#000000' },
+  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#03050c', skyMid: '#060a14', skyBot: '#030508', sun: '#000000' },
+  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#050810', skyMid: '#080c18', skyBot: '#05080e', sun: '#000000' },
   { m: 45,  name: 'Cloud Layer',    color: '#a8c8f0', skyTop: '#101828', skyMid: '#1a2840', skyBot: '#1e3048', sun: '#000000' },
   { m: 90,  name: 'High Altitude',  color: '#b388ff', skyTop: '#5a78c8', skyMid: '#7888d8', skyBot: '#3a4888', sun: '#ffd8a8' },
   { m: 150, name: 'Stratosphere',   color: '#7c4dff', skyTop: '#283878', skyMid: '#4050a0', skyBot: '#182050', sun: '#ffb878' },
@@ -3003,46 +3003,11 @@ class GameEngine {
       const focus = getCity(this.cityId).skylineFocus ?? 0.5;
       const drawX = Math.min(0, Math.max(this.w - tileW, this.w * 0.5 - focus * img.width * scale));
 
-      const night = Math.max(0, 1 - this.altitudeMeters / 110);
-      const alpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
-
       ctx.save();
-      ctx.globalAlpha = alpha * (0.5 + night * 0.3);
-      ctx.filter = `drop-shadow(0 ${3 + Math.round(night * 4)}px ${12 + Math.round(night * 10)}px rgba(0,0,0,${(0.42 + night * 0.22).toFixed(2)}))`;
+      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
+      if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
       ctx.drawImage(img, drawX, topY, tileW, tileH);
       ctx.restore();
-
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      if (vivid) {
-        ctx.filter = 'saturate(1.25) brightness(1.08)';
-      } else if (night > 0.18) {
-        ctx.filter = 'saturate(1.1) contrast(1.07)';
-      }
-      ctx.drawImage(img, drawX, topY, tileW, tileH);
-      ctx.restore();
-
-      if (night > 0.15 && !vivid) {
-        ctx.save();
-        ctx.globalAlpha = alpha * 0.11;
-        ctx.globalCompositeOperation = 'screen';
-        ctx.filter = 'blur(0.8px) brightness(1.4)';
-        ctx.drawImage(img, drawX, topY, tileW, tileH);
-        ctx.restore();
-      }
-
-      if (night > 0.2) {
-        ctx.save();
-        const ember = ctx.createLinearGradient(0, skylineFootY - 10, 0, skylineFootY + 4);
-        ember.addColorStop(0, 'rgba(0,0,0,0)');
-        ember.addColorStop(0.5, lerpHex(accent, '#ff9850', 0.45) + '20');
-        ember.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.globalAlpha = alpha * 0.55;
-        ctx.fillStyle = ember;
-        ctx.fillRect(drawX, skylineFootY - 10, tileW, 14);
-        ctx.restore();
-      }
-
       this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
       this._drawSkylineShoreLine(ctx, skylineFootY, accent, cityAlpha);
       return;
@@ -3074,14 +3039,14 @@ class GameEngine {
     const mid = lerpHex(lerpHex(sky.mid, accent, night * 0.02), zb.zone.skyMid, zoneMix * 0.68);
     const bot = lerpHex(lerpHex(sky.bot, this.bgStops[2] || '#0a0818', 0.08), zb.zone.skyBot, zoneMix * 0.75);
 
-    const horizonDeep = lerpHex(bot, '#080c18', 0.1 + night * 0.26);
-    const horizonFloor = lerpHex(bot, '#0a0e1c', 0.14 + night * 0.2);
+    const horizonDeep = lerpHex(bot, '#020304', 0.22 + night * 0.52);
+    const horizonFloor = lerpHex(bot, '#010102', 0.38 + night * 0.48);
     const g = ctx.createLinearGradient(0, 0, 0, this.h);
     g.addColorStop(0, lerpHex(top, '#020308', Math.max(cosmic * 0.92, night * 0.65)));
     g.addColorStop(0.25, lerpHex(mid, '#060a14', Math.max(cosmic * 0.6, night * 0.45)));
-    g.addColorStop(0.5, lerpHex(mid, '#080c18', Math.max(cosmic * 0.42, night * 0.32)));
-    g.addColorStop(0.68, lerpHex(bot, '#090e1a', Math.max(cosmic * 0.3, night * 0.28)));
-    g.addColorStop(0.86, horizonDeep);
+    g.addColorStop(0.5, lerpHex(mid, '#050810', Math.max(cosmic * 0.42, night * 0.38)));
+    g.addColorStop(0.68, lerpHex(bot, '#04060c', Math.max(cosmic * 0.32, night * 0.42)));
+    g.addColorStop(0.84, horizonDeep);
     g.addColorStop(1, horizonFloor);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
@@ -3093,12 +3058,6 @@ class GameEngine {
       vibe.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = vibe;
       ctx.fillRect(0, 0, this.w, this.h * 0.62);
-      const moon = ctx.createRadialGradient(this.w * 0.8, this.h * 0.11, 0, this.w * 0.8, this.h * 0.11, this.w * 0.34);
-      moon.addColorStop(0, `rgba(228, 236, 255, ${(night * 0.11).toFixed(3)})`);
-      moon.addColorStop(0.4, `rgba(150, 170, 220, ${(night * 0.04).toFixed(3)})`);
-      moon.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = moon;
-      ctx.fillRect(0, 0, this.w, this.h * 0.55);
     }
 
     this._drawMotes(ctx, rise, alt, cosmic, t);
@@ -4153,7 +4112,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=ff261834').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=7b0c39fd').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
