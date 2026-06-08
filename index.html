@@ -185,6 +185,7 @@
       font-size: .62rem; color: rgba(255,255,255,.4); margin-top: 3px;
       letter-spacing: .06em;
     }
+    #hud > div:last-child { padding-top: 46px; }
     #hud .level { color: rgba(255,255,255,.75); font-weight: 700; font-size: .85rem; text-align: right; }
     #hud .combo {
       color: #ff6b9d; font-weight: 800; font-size: .85rem; text-align: right;
@@ -200,20 +201,27 @@
       50% { text-shadow: 0 0 36px rgba(255,107,157,1), 0 0 52px rgba(0,229,255,.35); transform: scale(1.04); }
     }
     #hud .score.mega { transform: scale(1.18); filter: drop-shadow(0 0 16px rgba(255,213,79,.7)); }
-    #pauseBtn {
+    #playControls {
       position: absolute;
+      top: max(10px, env(safe-area-inset-top));
       right: max(12px, env(safe-area-inset-right));
-      bottom: max(14px, env(safe-area-inset-bottom));
-      z-index: 8;
+      z-index: 15;
+      pointer-events: none;
+    }
+    #playControls:not(.hidden) {
+      display: block !important;
       pointer-events: auto;
-      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-      width: auto; min-width: 0; margin: 0; padding: 10px 14px;
+    }
+    #pauseBtn {
+      display: inline-flex !important;
+      align-items: center; justify-content: center; gap: 7px;
+      width: auto; min-width: 44px; min-height: 44px; margin: 0; padding: 10px 14px;
       border-radius: 12px;
       font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
-      color: rgba(255,255,255,.9);
-      background: rgba(12, 10, 32, .86);
-      border: 1px solid rgba(0, 229, 255, .32);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, .38), 0 0 14px rgba(0, 229, 255, .14);
+      color: rgba(255,255,255,.92);
+      background: rgba(12, 10, 32, .92);
+      border: 1px solid rgba(0, 229, 255, .38);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .4), 0 0 16px rgba(0, 229, 255, .18);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
@@ -543,10 +551,12 @@
       <div class="combo" id="comboEl"></div>
     </div>
   </div>
-  <button id="pauseBtn" class="hidden" type="button" aria-label="Pause game" title="Pause">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
-    <span>Pause</span>
-  </button>
+  <div id="playControls" class="hidden">
+    <button id="pauseBtn" type="button" aria-label="Pause game" title="Pause">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+      <span>Pause</span>
+    </button>
+  </div>
   <div id="hint" class="hidden">Tap or press Space to drop</div>
   <div id="missionEl" class="hidden"></div>
   <div id="challengeBanner"><span></span></div>
@@ -3261,7 +3271,8 @@ function show(which) {
 
 function syncPauseBtn() {
   const showBtn = screen === 'play' && !optionsContext && !perkPaused;
-  $('pauseBtn').classList.toggle('hidden', !showBtn);
+  const controls = $('playControls');
+  if (controls) controls.classList.toggle('hidden', !showBtn);
 }
 
 function updateOptionsUI() {
@@ -3466,6 +3477,7 @@ async function startGame(modeId = selectedModeId) {
   if (modeId === 'weekly') {
     showToast('Weekly mode', { color: '#7c4dff', sub: 'Same missions & twists for everyone', duration: 2200 });
   }
+  syncPauseBtn();
   loop(0);
 }
 
@@ -3803,10 +3815,21 @@ document.addEventListener('visibilitychange', async () => {
 syncSettingsUI();
 resize();
 runLoading();
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=c0c7ca35').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=f31da335').then((reg) => {
+      reg.update();
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            worker.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 menuBackgroundLoop();
