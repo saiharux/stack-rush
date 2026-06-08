@@ -1046,13 +1046,13 @@ function earlyEaseT(level) {
 function earlyAlignEase(level) {
   return 1 + earlyEaseT(level) * 0.55;
 }
+window.earlyAlignEase = earlyAlignEase;
 
-/** Center alignment — fair when block widths differ (special blocks, precision shrink). */
+/** Center alignment — fair when block widths differ (special blocks, sliced towers). */
 function landingAlignMis(a, top) {
-  const centerMis = Math.abs((a.left + a.width / 2) - (top.left + top.width / 2));
-  const edgeMis = Math.abs(a.left - top.left);
-  return Math.min(centerMis, edgeMis);
+  return Math.abs((a.left + a.width / 2) - (top.left + top.width / 2));
 }
+window.landingAlignMis = landingAlignMis;
 
 function speedForLevel(level) {
   const l = Math.max(1, level);
@@ -1064,8 +1064,8 @@ function speedForLevel(level) {
   return s;
 }
 
-function rateLanding(mis, refW, perfectMul = 1, alignEase = 1) {
-  const ease = Math.max(1, alignEase);
+function rateLanding(mis, refW, perfectMul = 1, alignEase = 1, special = false) {
+  const ease = Math.max(1, alignEase) * (special ? 1.2 : 1);
   const pR = (PERFECT_RATIO * perfectMul) * ease;
   const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) * ease;
   const goodR = GOOD_RATIO * ease;
@@ -1794,11 +1794,17 @@ class GameEngine {
 
   towerTop() { return Math.min(...this.stack.map(b => b.top)); }
 
+  _stackTop() { return this.stack[this.stack.length - 1]; }
+
+  _centerOnTop(width, top = this._stackTop()) {
+    return top.left + (top.width - width) / 2;
+  }
+
   spawn(opts = {}) {
     if (opts.retry && opts.prevActive) {
       const width = opts.prevActive.width;
       this.active = {
-        left: (this.w - width) / 2,
+        left: this._centerOnTop(width),
         width,
         color: opts.prevActive.color,
         special: opts.prevActive.special || null,
@@ -1820,7 +1826,7 @@ class GameEngine {
       this._showChallengeBanner({ name: special.label, desc: special.desc, color: special.color });
     }
     this.active = {
-      left: (this.w - width) / 2,
+      left: this._centerOnTop(width, ref),
       width,
       color: (this.level - 1) % this.palette.length,
       special,
@@ -1839,7 +1845,7 @@ class GameEngine {
       this.bossFloor = BOSS_FLOORS[idx];
       if (this.bossFloor.widthMul) {
         this.active.width = Math.min(this.w * 0.9, this.active.width * this.bossFloor.widthMul);
-        this.active.left = (this.w - this.active.width) / 2;
+        this.active.left = this._centerOnTop(this.active.width);
       }
       this.windPhase = this._rnd() * Math.PI * 2;
       this._showChallengeBanner(this.bossFloor, true);
@@ -1974,11 +1980,12 @@ class GameEngine {
     if (!this.over && this.phase === 'moving') {
       this.moveT += dt * this._effectiveSpeed();
       const ease = earlyEaseT(this.level);
+      const top = this._stackTop();
+      const anchorCx = top.left + top.width / 2;
       const amp = (this.w - this.active.width) / 2 * (1 - ease * 0.22);
-      const cx = this.w / 2;
       const mirror = this.bossFloor?.id === 'mirror';
       const wave = (mirror ? -1 : 1) * (Math.sin(this.moveT) * 0.93 + Math.sin(this.moveT * 2.17) * 0.07);
-      let left = cx - this.active.width / 2 + wave * amp;
+      let left = anchorCx - this.active.width / 2 + wave * amp;
       if (this.bossFloor?.id === 'quake') {
         left += Math.sin(this.moveT * 3.4) * 22 + Math.sin(this.moveT * 1.1) * 10;
       }
@@ -2163,7 +2170,7 @@ class GameEngine {
 
     const mis = landingAlignMis(a, top);
     const alignEase = earlyAlignEase(this.level);
-    const tier = rateLanding(mis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase);
+    const tier = rateLanding(mis, top.width, this.perkPerfectMul * (this.mode.perfectTight || 1), alignEase, !!a.special);
     const perfect = tier === 'perfect';
 
     let landL = oL;
@@ -2395,7 +2402,7 @@ class GameEngine {
     const mis = landingAlignMis(a, top);
     const perfectMul = this.perkPerfectMul * (this.mode.perfectTight || 1);
     const alignEase = earlyAlignEase(this.level);
-    const tier = rateLanding(mis, top.width, perfectMul, alignEase);
+    const tier = rateLanding(mis, top.width, perfectMul, alignEase, !!a.special);
     const guideColor = tier === 'perfect' ? '#00e5ff'
       : tier === 'great' ? '#ffd54f'
       : tier === 'good' ? '#69f0ae'
@@ -2409,15 +2416,18 @@ class GameEngine {
     const topH = ah;
     const topLeft = this.worldToScreenX(top.left);
     const topRight = this.worldToScreenX(top.left + top.width);
-    const pR = (PERFECT_RATIO * perfectMul) * Math.max(1, alignEase);
+    const topCx = top.left + top.width / 2;
+    const aCx = a.left + a.width / 2;
+    const easeMul = Math.max(1, alignEase) * (a.special ? 1.2 : 1);
+    const zoneHalf = top.width * (PERFECT_RATIO * perfectMul) * easeMul;
     const pulse = 0.55 + Math.sin(time * 6) * 0.25;
 
     ctx.save();
 
     ctx.globalAlpha = 0.28 * pulse;
     ctx.fillStyle = '#00e5ff';
-    const pL = this.worldToScreenX(top.left + top.width * pR);
-    const pRpx = this.worldToScreenX(top.left + top.width * (1 - pR));
+    const pL = this.worldToScreenX(topCx - zoneHalf);
+    const pRpx = this.worldToScreenX(topCx + zoneHalf);
     ctx.fillRect(pL, topY, Math.max(2, pRpx - pL), topH);
 
     ctx.globalAlpha = 0.16;
@@ -2450,6 +2460,25 @@ class GameEngine {
     ctx.beginPath();
     ctx.moveTo(ax - 10, landY + ah);
     ctx.lineTo(ax + aw + 10, landY + ah);
+    ctx.stroke();
+
+    const topCxPx = this.worldToScreenX(topCx);
+    const aCxPx = this.worldToScreenX(aCx);
+    ctx.globalAlpha = 0.65;
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(topCxPx, topY - 8);
+    ctx.lineTo(topCxPx, topY + topH + 8);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = guideColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(aCxPx, at - 6);
+    ctx.lineTo(aCxPx, landY + ah + 6);
     ctx.stroke();
 
     const label = tier !== 'none' ? TIER_STYLE[tier].label.replace('!', '')
@@ -4084,7 +4113,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=ac790891').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=85e2e7d7').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
