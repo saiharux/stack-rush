@@ -30,8 +30,8 @@
       background: #08061a;
       box-shadow: 0 0 80px rgba(0, 229, 255, 0.08);
     }
-    #game { display: block; width: 100%; height: 100%; position: relative; }
-    #game canvas { display: block; width: 100%; height: 100%; }
+    #game { display: block; width: 100%; height: 100%; position: relative; touch-action: none; }
+    #game canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
     .overlay {
       position: absolute; inset: 0;
@@ -605,6 +605,11 @@
         <button class="toggle on" id="dropGuideToggle" type="button"></button>
       </div>
       <p class="theme-label" style="margin-top:2px;opacity:.55;font-size:.68rem;">Shows where the block will land</p>
+      <div class="toggle-row" style="margin-top:10px;">
+        <span>Haptic feedback</span>
+        <button class="toggle on" id="hapticsToggle" type="button"></button>
+      </div>
+      <p class="theme-label" style="margin-top:2px;opacity:.55;font-size:.68rem;">Vibration on perfect lands &amp; drops (mobile)</p>
       <div class="section-divider"></div>
       <p class="theme-label">Block theme <span id="themeUnlockHint"></span></p>
       <div class="theme-grid" id="themeGrid"></div>
@@ -701,7 +706,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'cities10';
+const ASSETS_VER = 'cities11';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1189,6 +1194,9 @@ const TRAILS = [
   { xp: 2800, id: 'pulse', color: '#7c4dff' },
   { xp: 5500, id: 'comet', color: '#ffd54f' },
   { xp: 10000, id: 'neon', color: '#ff6b9d' },
+  { xp: 15000, id: 'plasma', color: '#69f0ae' },
+  { xp: 22000, id: 'royal', color: '#b388ff' },
+  { xp: 30000, id: 'solar', color: '#ff8a65' },
 ];
 
 function getUnlockedTrail() {
@@ -1242,6 +1250,8 @@ const RANKS = [
   { xp: 5500, name: 'Cloudmaster' },
   { xp: 10000, name: 'Orbital' },
   { xp: 18000, name: 'Legend' },
+  { xp: 28000, name: 'Mythic' },
+  { xp: 40000, name: 'Ascendant' },
 ];
 
 const ACHIEVEMENTS = [
@@ -1261,7 +1271,18 @@ const ACHIEVEMENTS = [
   { id: 'city_nyc', icon: '🗽', label: 'Big Apple', desc: 'Unlock the New York skyline', meta: () => isCityUnlocked('nyc') },
   { id: 'city_toronto', icon: '🍁', label: 'Maple Tower', desc: 'Unlock the Toronto skyline', meta: () => isCityUnlocked('toronto') },
   { id: 'city_tokyo', icon: '🗼', label: 'Rising Sun', desc: 'Unlock the Tokyo skyline', meta: () => isCityUnlocked('tokyo') },
+  { id: 'city_london', icon: '🎡', label: 'Thames Tower', desc: 'Unlock the London skyline', meta: () => isCityUnlocked('london') },
+  { id: 'city_dubai', icon: '🏜️', label: 'Desert Spire', desc: 'Unlock the Dubai skyline', meta: () => isCityUnlocked('dubai') },
+  { id: 'theme_sunset', icon: '🌅', label: 'Golden Hour', desc: 'Unlock the Sunset block theme', meta: () => isThemeUnlocked('sunset') },
+  { id: 'theme_retro', icon: '👾', label: 'Arcade Glow', desc: 'Unlock the Retro block theme', meta: () => isThemeUnlocked('retro') },
   { id: 'theme_ocean', icon: '🌊', label: 'Deep Blue', desc: 'Unlock the Ocean block theme', meta: () => isThemeUnlocked('ocean') },
+  { id: 'theme_aurora', icon: '🌌', label: 'Northern Lights', desc: 'Unlock the Aurora block theme', meta: () => isThemeUnlocked('aurora') },
+  { id: 'theme_cosmic', icon: '✨', label: 'Starfall', desc: 'Unlock the Cosmic block theme', meta: () => isThemeUnlocked('cosmic') },
+  { id: 'trail_comet', icon: '☄️', label: 'Comet Trail', desc: 'Unlock the Comet rank trail (5,500 XP)', meta: () => loadCareer().xp >= 5500 },
+  { id: 'trail_solar', icon: '🌟', label: 'Solar Trail', desc: 'Unlock the Solar rank trail (30,000 XP)', meta: () => loadCareer().xp >= 30000 },
+  { id: 'alt_150', icon: '🛰️', label: 'Stratosphere', desc: 'Reach 150m altitude in one run', test: r => r.altitudeMeters >= 150 },
+  { id: 'precision_400', icon: '🎯', label: 'Surgical', desc: 'Score 400+ in Precision mode', test: r => r.modeId === 'precision' && r.score >= 400 },
+  { id: 'boss_3', icon: '👹', label: 'Boss Slayer', desc: 'Defeat 3 boss floors in one run', test: r => r.bossesBeat >= 3 },
 ];
 
 function loadCareer() {
@@ -1439,6 +1460,36 @@ const THEMES = {
     bg: ['#02101c', '#062840', '#0a3d5c'],
     bgHigh: ['#063050', '#0a4878', '#106898'],
   },
+  aurora: {
+    name: 'Aurora', unlockScore: 4500,
+    colors: [
+      { main: '#00f5d4', dark: '#007a68', edge: '#7dfff0' },
+      { main: '#9b5de5', dark: '#5a2d9e', edge: '#d4a5ff' },
+      { main: '#00bbf9', dark: '#006d94', edge: '#7ddfff' },
+      { main: '#f15bb5', dark: '#a00d6e', edge: '#ff9ee0' },
+      { main: '#fee440', dark: '#b89a00', edge: '#fff59d' },
+      { main: '#06d6a0', dark: '#047a5c', edge: '#7dffd4' },
+      { main: '#118ab2', dark: '#0a4f68', edge: '#7dc8e8' },
+      { main: '#ef476f', dark: '#a81840', edge: '#ff8fab' },
+    ],
+    bg: ['#040818', '#0a1840', '#142858'],
+    bgHigh: ['#0c2050', '#1a3880', '#2850a8'],
+  },
+  cosmic: {
+    name: 'Cosmic', unlockScore: 6000,
+    colors: [
+      { main: '#e0aaff', dark: '#7b2cbf', edge: '#f3d9ff' },
+      { main: '#ffd6ff', dark: '#c77dff', edge: '#ffffff' },
+      { main: '#80ffdb', dark: '#00b894', edge: '#c8fff0' },
+      { main: '#ffadad', dark: '#e63946', edge: '#ffd6d6' },
+      { main: '#bdb2ff', dark: '#5a189a', edge: '#e0c3fc' },
+      { main: '#ffc6ff', dark: '#d946ef', edge: '#ffe0ff' },
+      { main: '#a2d2ff', dark: '#4895ef', edge: '#d7eeff' },
+      { main: '#cdb4db', dark: '#6d597a', edge: '#f0e0f8' },
+    ],
+    bg: ['#08041a', '#14082e', '#201048'],
+    bgHigh: ['#180c38', '#301860', '#482888'],
+  },
 };
 
 function lerpHex(a, b, t) {
@@ -1458,6 +1509,8 @@ const CITIES = {
   nyc:     { name: 'New York',  unlockScore: 600,  skyline: 'cities/nyc.png',     accent: '#ffd54f' },
   toronto: { name: 'Toronto',   unlockScore: 1200, skyline: 'cities/toronto.png', accent: '#7c4dff' },
   tokyo:   { name: 'Tokyo',     unlockScore: 2000, skyline: 'cities/tokyo.png',   accent: '#ff6b9d' },
+  london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff' },
+  dubai:   { name: 'Dubai',     unlockScore: 3600, skyline: 'cities/dubai.png',   accent: '#ffd54f' },
 };
 
 function getCity(id) { return CITIES[id] || CITIES.neon; }
@@ -2033,6 +2086,7 @@ class GameEngine {
       }
       this.over = true; this.phase = 'done'; this.combo = 0;
       this.endReason = 'fall';
+      gamePulse('gameover');
       this.audio?.playGameOver();
       return;
     }
@@ -2059,7 +2113,10 @@ class GameEngine {
         this.falling.push(this._makeSlice(sl, a.left + a.width - sl, targetTop + BLOCK_H, a.color, 1));
         sliced = true;
       }
-      if (sliced) this.audio?.playSlice();
+      if (sliced) {
+        this.audio?.playSlice();
+        gamePulse('slice');
+      }
     }
     if (perfect) this.combo += 1;
     else if (!(tier === 'great' && this.perkComboGuard)) this.combo = 0;
@@ -2106,13 +2163,13 @@ class GameEngine {
       this.shake = st.shake;
       if (tier === 'perfect') {
         this.audio?.playPerfect();
-        gamePulse('perfect');
+        gamePulse(this.combo >= 5 ? 'combo' : 'perfect');
         this.screenPulse = 0.42;
         this.screenPulseColor = st.color;
         this.comboGlow = Math.min(1, 0.35 + this.combo * 0.12);
       }
-      else if (tier === 'great') this.audio?.playGreat();
-      else this.audio?.playGood();
+      else if (tier === 'great') { this.audio?.playGreat(); gamePulse('great'); }
+      else { this.audio?.playGood(); gamePulse('good'); }
       const ringCount = st.rings || 0;
       for (let ri = 0; ri < ringCount; ri++) {
         this.perfectRings.push({
@@ -2143,6 +2200,7 @@ class GameEngine {
     } else {
       this.shake = 3 + impact * 3;
       this.audio?.playLand();
+      gamePulse('land');
       if (gained >= 25) this.scoreBump = gained;
     }
 
@@ -3067,11 +3125,35 @@ let lastShareText = '';
 let lastWeeklyShareLink = '';
 const $ = id => document.getElementById(id);
 
+function loadHaptics() {
+  try {
+    const s = JSON.parse(localStorage.getItem('stackrush_settings') || '{}');
+    return s.haptics !== false;
+  } catch { return true; }
+}
+
+function saveHaptics(on) {
+  const s = JSON.parse(localStorage.getItem('stackrush_settings') || '{}');
+  s.haptics = on;
+  localStorage.setItem('stackrush_settings', JSON.stringify(s));
+}
+
 function gamePulse(kind) {
-  if (!navigator.vibrate) return;
-  if (kind === 'perfect') navigator.vibrate([8, 20, 12, 28, 10]);
-  else if (kind === 'milestone') navigator.vibrate([16, 40, 20]);
-  else if (kind === 'edge') navigator.vibrate(28);
+  if (!loadHaptics() || !navigator.vibrate) return;
+  const patterns = {
+    drop: 5,
+    land: 3,
+    good: [5, 10],
+    great: [7, 14, 8],
+    perfect: [10, 18, 14, 32, 12],
+    combo: [6, 12, 6, 22],
+    slice: [14, 10, 18],
+    milestone: [18, 36, 22],
+    edge: 22,
+    gameover: [36, 55, 36],
+  };
+  const p = patterns[kind];
+  if (p !== undefined) navigator.vibrate(p);
 }
 
 function loadBest() { return +(localStorage.getItem('stackrush_best') || 0); }
@@ -3130,6 +3212,7 @@ function saveDropGuide(on) {
   localStorage.setItem('stackrush_settings', JSON.stringify(s));
 }
 window.loadDropGuide = loadDropGuide;
+window.loadHaptics = loadHaptics;
 
 function applyTheme(id) {
   if (!isThemeUnlocked(id)) return;
@@ -3647,9 +3730,21 @@ function menuBackgroundLoop() {
   requestAnimationFrame(menuBackgroundLoop);
 }
 
-function onTap() {
+let tapLock = false;
+
+function onTap(e) {
+  if (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+  }
+  if (tapLock) return;
   if (screen === 'play' && !paused && !perkPaused && engine) {
-    if (engine.drop()) dismissTutorial();
+    if (engine.drop()) {
+      tapLock = true;
+      gamePulse('drop');
+      dismissTutorial();
+      setTimeout(() => { tapLock = false; }, 90);
+    }
   }
 }
 
@@ -3718,6 +3813,7 @@ function syncSettingsUI() {
   $('musicToggle').classList.toggle('on', audio.musicOn);
   $('sfxToggle').classList.toggle('on', audio.sfxOn);
   $('dropGuideToggle').classList.toggle('on', loadDropGuide());
+  $('hapticsToggle').classList.toggle('on', loadHaptics());
 }
 
 $('playBtn').onclick = () => startGame();
@@ -3750,6 +3846,12 @@ $('tutorialSkip').onclick = () => dismissTutorial();
 $('dropGuideToggle').onclick = () => {
   saveDropGuide(!loadDropGuide());
   syncSettingsUI();
+};
+$('hapticsToggle').onclick = () => {
+  const on = !loadHaptics();
+  saveHaptics(on);
+  syncSettingsUI();
+  if (on) gamePulse('good');
 };
 $('musicToggle').onclick = () => {
   audio.musicOn = !audio.musicOn;
@@ -3793,7 +3895,7 @@ $('menuBtn').onclick = () => {
   menuLoopStop = false;
   engine = null;
 };
-canvas.addEventListener('pointerdown', onTap);
+canvas.addEventListener('pointerdown', onTap, { passive: false });
 window.addEventListener('keydown', async e => {
   if (e.code === 'Space' && !optionsContext) { e.preventDefault(); onTap(); }
   if (e.code === 'Escape' || e.code === 'KeyP') {
@@ -3817,7 +3919,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=f31da335').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=a7510427').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
