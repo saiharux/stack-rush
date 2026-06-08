@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 0abb5539</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build d1c6bcbd</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '0abb5539';
+const ASSETS_VER = 'd1c6bcbd';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1559,7 +1559,7 @@ function getThemeBgHigh(id) { return getTheme(id).bgHigh || getTheme(id).bg; }
 const CITIES = {
   neon:    { name: 'Neon City', unlockScore: 0,    skyline: 'cities/neon.png',    accent: '#00e5ff' },
   nyc:     { name: 'New York',  unlockScore: 600,  skyline: 'cities/nyc.png',     accent: '#ffd54f' },
-  toronto: { name: 'Toronto',   unlockScore: 1200, skyline: 'cities/toronto.png', accent: '#7c4dff', skylineFocus: 0.36 },
+  toronto: { name: 'Toronto',   unlockScore: 1200, skyline: 'cities/toronto.png', accent: '#7c4dff', skylineFocus: 0.44 },
   tokyo:   { name: 'Tokyo',     unlockScore: 2000, skyline: 'cities/tokyo.png',   accent: '#ff6b9d' },
   london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff', skylineFocus: 0.31 },
   moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350', vivid: true, skylineFocus: 0.33 },
@@ -4057,7 +4057,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=0abb5539').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=d1c6bcbd').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
