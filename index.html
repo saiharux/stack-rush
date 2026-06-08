@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 68f1f934</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7ed7c283</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '68f1f934';
+const ASSETS_VER = '7ed7c283';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -964,7 +964,7 @@ class AudioEngine {
 const BLOCK_H = 32;
 const BLOCK_D = 14; // 3D depth
 const SKYLINE_BASE_INSET = 8; // water strip at bottom of skyline PNGs (see generate_city_skylines.py)
-const SKYLINE_SCREEN_FOOT = 0.58; // distant horizon at game start (decoupled from ground blocks)
+const SKYLINE_SCREEN_FOOT = 0.64; // distant horizon at game start (decoupled from ground blocks)
 const SKYLINE_CLIMB_SCROLL = 0.42; // scrollUp span before skyline foot tracks the platform
 const GRAVITY = 5200;
 const DROP_BOOST = 520;
@@ -2891,6 +2891,40 @@ class GameEngine {
     ctx.globalAlpha = 1;
   }
 
+  _drawSkylineWindowFlicker(ctx, left, topY, width, height, alpha, time) {
+    if (alpha <= 0.04) return;
+    const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
+    const seedBase = (this.cityId || 'neon').split('').reduce((n, c) => n + c.charCodeAt(0), 0);
+    const bandTop = topY + height * 0.1;
+    const bandH = height * 0.78;
+    const cols = Math.max(8, Math.floor(width / 12));
+    const rows = Math.max(6, Math.floor(bandH / 9));
+    const cellW = width / cols;
+    const cellH = bandH / rows;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const seed = seedBase + col * 17.31 + row * 29.7;
+        if (rng(seed) > 0.44) continue;
+        const phase = time * (1.6 + rng(seed + 1) * 2.8) + seed * 0.65;
+        const flicker = 0.5 + 0.5 * Math.sin(phase);
+        if (flicker < 0.22) continue;
+        const wx = left + col * cellW + cellW * 0.28;
+        const wy = bandTop + row * cellH + cellH * 0.22;
+        const ww = 1.5 + rng(seed + 2) * 2.5;
+        const wh = 1.5 + rng(seed + 3) * 2.5;
+        const warm = rng(seed + 4) > 0.14;
+        const a = alpha * flicker * (warm ? 0.55 : 0.28);
+        ctx.fillStyle = warm
+          ? `rgba(255,${186 + (rng(seed + 5) * 44) | 0},${58 + (rng(seed + 6) * 48) | 0},${a})`
+          : `rgba(118,188,255,${a})`;
+        ctx.fillRect(wx, wy, ww, wh);
+      }
+    }
+    ctx.restore();
+  }
+
   _drawCitySkyline(ctx, t) {
     const cosmic = this.cosmicBlend;
     const cityAlpha = Math.max(0, 0.92 - this.altitudeMeters / 55 - cosmic * 0.55);
@@ -2905,17 +2939,16 @@ class GameEngine {
       const scale = targetH / img.height;
       const tileW = img.width * scale;
       const tileH = img.height * scale;
-      const parallax = (this.skyScroll * 6) % tileW;
       const groundNorm = (img.height - SKYLINE_BASE_INSET) / img.height;
       const topY = skylineFootY - tileH * groundNorm;
+      const drawX = (this.w - tileW) * 0.5;
 
       ctx.save();
       ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
       if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
-      for (let x = -parallax - tileW; x < this.w + tileW; x += tileW) {
-        ctx.drawImage(img, x, topY, tileW, tileH);
-      }
+      ctx.drawImage(img, drawX, topY, tileW, tileH);
       ctx.restore();
+      this._drawSkylineWindowFlicker(ctx, drawX, topY, tileW, tileH, cityAlpha, t);
       return;
     }
 
@@ -2926,12 +2959,9 @@ class GameEngine {
       const by = skylineFootY - bh;
       ctx.fillStyle = `rgba(12,14,32,${cityAlpha * (0.55 + rng(x + 2) * 0.25)})`;
       rr(ctx, x, by, bw, bh, 2); ctx.fill();
-      if (rng(x + 5) > 0.5 && bh > 40) {
-        ctx.fillStyle = `rgba(255,210,100,${cityAlpha * 0.35})`;
-        ctx.fillRect(x + bw * 0.35, by + bh * 0.35, 2, 3);
-      }
       x += bw + 5 + rng(x + 3) * 8;
     }
+    this._drawSkylineWindowFlicker(ctx, 0, skylineFootY - this.h * 0.22, this.w, this.h * 0.22, cityAlpha, t);
   }
 
   _drawBackground(ctx, t) {
@@ -4034,7 +4064,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=68f1f934').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=7ed7c283').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
