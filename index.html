@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build bdb035cf</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 71a1a238</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'bdb035cf';
+const ASSETS_VER = '71a1a238';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2506,10 +2506,6 @@ class GameEngine {
     ctx.lineTo(topLeft, topY + topH + 5);
     ctx.moveTo(topRight, topY - 5);
     ctx.lineTo(topRight, topY + topH + 5);
-    if (tier === 'perfect') {
-      ctx.moveTo(zoneCx - pPx / 2, landY - 4);
-      ctx.lineTo(zoneCx + pPx / 2, landY - 4);
-    }
     ctx.stroke();
 
     const label = tier !== 'none' ? TIER_STYLE[tier].label.replace('!', '')
@@ -4159,7 +4155,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=bdb035cf').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=71a1a238').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
