@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 612ff292</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 1d804a0b</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '612ff292';
+const ASSETS_VER = '1d804a0b';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -963,7 +963,7 @@ class AudioEngine {
    ═══════════════════════════════════════════ */
 const BLOCK_H = 32;
 const BLOCK_D = 14; // 3D depth
-const SKYLINE_BASE_INSET = 8; // water strip at bottom of skyline PNGs (see generate_city_skylines.py)
+const SKYLINE_BASE_INSET = 6; // padding below building feet in skyline PNGs (see generate_city_skylines.py)
 const SKYLINE_SCREEN_FOOT = 0.69; // distant horizon at game start (decoupled from ground blocks)
 const SKYLINE_CLIMB_SCROLL = 0.42; // scrollUp span before skyline foot tracks the platform
 const GRAVITY = 5200;
@@ -2980,9 +2980,7 @@ class GameEngine {
 
     this._drawMotes(ctx, rise, alt, cosmic, t);
     this._drawCloudLayers(ctx, rise, alt, cosmic, t);
-    const cityVisible = Math.max(0, 0.92 - this.altitudeMeters / 55 - cosmic * 0.55) > 0.03;
-    const horizonY = cityVisible ? this._skylineFootScreenY() : this.worldToScreenY(this.groundY);
-    this._drawHorizonGlow(ctx, horizonY, alt, cosmic);
+    this._drawHorizonGlow(ctx, this.worldToScreenY(this.groundY), alt, cosmic);
 
     if (cosmic > 0.08) {
       const starBright = cosmic * 0.7 + alt * 0.15;
@@ -4032,7 +4030,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=612ff292').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=1d804a0b').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
