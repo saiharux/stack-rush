@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 959b935f</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 2b620ca9</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '959b935f';
+const ASSETS_VER = '2b620ca9';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2891,7 +2891,7 @@ class GameEngine {
 
     if (img && img.complete && img.naturalWidth > 0) {
       const vivid = !!getCity(this.cityId).vivid;
-      const targetH = Math.min(vivid ? 220 : 200, this.h * (vivid ? 0.3 : 0.28));
+      const targetH = Math.min(200, this.h * 0.28);
       const scale = targetH / img.height;
       const tileW = img.width * scale;
       const tileH = img.height * scale;
@@ -2900,8 +2900,8 @@ class GameEngine {
       const topY = groundY - tileH * groundNorm;
 
       ctx.save();
-      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.1) : cityAlpha;
-      if (vivid) ctx.filter = 'saturate(1.35) brightness(1.12) contrast(1.06)';
+      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
+      if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
       for (let x = -parallax - tileW; x < this.w + tileW; x += tileW) {
         ctx.drawImage(img, x, topY, tileW, tileH);
       }
@@ -4024,7 +4024,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=959b935f').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=2b620ca9').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
