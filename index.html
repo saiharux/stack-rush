@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 397900b4</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 42e46898</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -2403,16 +2403,8 @@ class GameEngine {
     const topH = ah;
     const topLeft = this.worldToScreenX(top.left);
     const topRight = this.worldToScreenX(top.left + top.width);
-    const pR = PERFECT_RATIO * perfectMul;
-    const pulse = 0.55 + Math.sin(time * 6) * 0.25;
 
     ctx.save();
-
-    ctx.globalAlpha = 0.28 * pulse;
-    ctx.fillStyle = '#00e5ff';
-    const pL = this.worldToScreenX(top.left + top.width * pR);
-    const pRpx = this.worldToScreenX(top.left + top.width * (1 - pR));
-    ctx.fillRect(pL, topY, Math.max(2, pRpx - pL), topH);
 
     ctx.globalAlpha = 0.16;
     drawBlock3D(ctx, ax, landY, aw, ah, a.color, { ghost: true, palette: this.palette, time });
@@ -2437,13 +2429,6 @@ class GameEngine {
     ctx.lineTo(topLeft, topY + topH + 5);
     ctx.moveTo(topRight, topY - 5);
     ctx.lineTo(topRight, topY + topH + 5);
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(ax - 10, landY + ah);
-    ctx.lineTo(ax + aw + 10, landY + ah);
     ctx.stroke();
 
     const label = tier !== 'none' ? TIER_STYLE[tier].label.replace('!', '')
@@ -4084,7 +4069,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=397900b4').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=42e46898').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
