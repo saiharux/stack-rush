@@ -2418,17 +2418,7 @@ class GameEngine {
     const topRight = this.worldToScreenX(top.left + top.width);
     const topCx = top.left + top.width / 2;
     const aCx = a.left + a.width / 2;
-    const easeMul = Math.max(1, alignEase) * (a.special ? 1.2 : 1);
-    const zoneHalf = top.width * (PERFECT_RATIO * perfectMul) * easeMul;
-    const pulse = 0.55 + Math.sin(time * 6) * 0.25;
-
     ctx.save();
-
-    ctx.globalAlpha = 0.28 * pulse;
-    ctx.fillStyle = '#00e5ff';
-    const pL = this.worldToScreenX(topCx - zoneHalf);
-    const pRpx = this.worldToScreenX(topCx + zoneHalf);
-    ctx.fillRect(pL, topY, Math.max(2, pRpx - pL), topH);
 
     ctx.globalAlpha = 0.16;
     drawBlock3D(ctx, ax, landY, aw, ah, a.color, { ghost: true, palette: this.palette, time });
@@ -4113,7 +4103,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=85e2e7d7').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=f4b7fdcc').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
