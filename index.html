@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 871e3a3e</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7ba83937</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '871e3a3e';
+const ASSETS_VER = '7ba83937';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2894,21 +2894,56 @@ class GameEngine {
 
   _drawSkylineGround(ctx, footY, skyBot, accent, alpha) {
     if (alpha <= 0.05) return;
-    const shoreH = Math.min(36, this.h * 0.045);
-    const shore = lerpHex(skyBot, accent, 0.12);
-    const deep = lerpHex(skyBot, '#080c18', 0.42);
+    const shoreH = Math.min(48, this.h * 0.06);
+    const shore = lerpHex(skyBot, accent, 0.18);
+    const deep = lerpHex(skyBot, '#0a1020', 0.38);
     ctx.save();
     ctx.globalAlpha = alpha;
-    const g = ctx.createLinearGradient(0, footY - shoreH * 0.35, 0, footY + shoreH);
+    const g = ctx.createLinearGradient(0, footY - shoreH * 0.4, 0, footY + shoreH * 0.85);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.25, shore + '44');
-    g.addColorStop(0.62, deep + '77');
-    g.addColorStop(1, deep + '33');
+    g.addColorStop(0.3, shore + '66');
+    g.addColorStop(0.72, deep + '99');
+    g.addColorStop(1, deep + '55');
     ctx.fillStyle = g;
-    ctx.fillRect(0, footY - shoreH * 0.3, this.w, shoreH * 1.3);
-    ctx.globalAlpha = alpha * 0.7;
-    ctx.fillStyle = lerpHex(accent, shore, 0.45) + '66';
-    ctx.fillRect(0, footY - 1, this.w, 3);
+    ctx.fillRect(0, footY - shoreH * 0.35, this.w, shoreH * 1.2);
+    ctx.restore();
+  }
+
+  _drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, footY, alpha) {
+    if (alpha <= 0.05) return;
+    const reflH = Math.min(44, tileH * 0.18);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, footY + 2, this.w, reflH);
+    ctx.clip();
+    ctx.globalAlpha = alpha * 0.2;
+    ctx.translate(0, footY * 2);
+    ctx.scale(1, -1);
+    ctx.drawImage(img, drawX, topY, tileW, tileH);
+    ctx.restore();
+    const fade = ctx.createLinearGradient(0, footY + 2, 0, footY + reflH + 2);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(0.55, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, `rgba(8,12,24,${alpha * 0.45})`);
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, footY + 2, this.w, reflH);
+  }
+
+  _drawSkylineShoreLine(ctx, footY, accent, alpha) {
+    if (alpha <= 0.05) return;
+    const line = lerpHex(accent, '#d8e8ff', 0.42);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const g = ctx.createLinearGradient(0, footY - 3, 0, footY + 10);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.45, line + '88');
+    g.addColorStop(0.65, line + 'cc');
+    g.addColorStop(1, accent + '33');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, footY - 2, this.w, 12);
+    ctx.globalAlpha = Math.min(1, alpha * 0.95);
+    ctx.fillStyle = line + 'ee';
+    ctx.fillRect(0, footY, this.w, 2);
     ctx.restore();
   }
 
@@ -2940,6 +2975,8 @@ class GameEngine {
       if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
       ctx.drawImage(img, drawX, topY, tileW, tileH);
       ctx.restore();
+      this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
+      this._drawSkylineShoreLine(ctx, skylineFootY, accent, cityAlpha);
       return;
     }
 
@@ -4054,7 +4091,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=871e3a3e').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=7ba83937').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
