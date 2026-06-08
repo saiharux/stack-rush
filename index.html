@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 5be24220</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build bdb035cf</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '5be24220';
+const ASSETS_VER = 'bdb035cf';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2515,26 +2515,13 @@ class GameEngine {
     const label = tier !== 'none' ? TIER_STYLE[tier].label.replace('!', '')
       : oW <= 0 ? 'MISS' : '';
     if (label) {
-      const lx = ax + aw / 2;
-      const ly = landY - (tier === 'perfect' ? 14 : 8);
-      const fs = tier === 'perfect' ? 20 : tier === 'great' ? 13 : 11;
-      ctx.textAlign = 'center';
-      ctx.font = `800 ${fs}px Segoe UI, system-ui, sans-serif`;
-      if (tier === 'perfect') {
-        const tw = ctx.measureText(label).width + 18;
-        ctx.globalAlpha = 0.92;
-        ctx.fillStyle = 'rgba(0,18,28,.82)';
-        roundRect(ctx, lx - tw / 2, ly - fs - 2, tw, fs + 10, 8);
-        ctx.fill();
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = 0.9;
       ctx.fillStyle = guideColor;
+      ctx.font = '700 11px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
       ctx.shadowColor = guideColor;
-      ctx.shadowBlur = tier === 'perfect' ? 14 : 8;
-      ctx.fillText(label, lx, ly);
+      ctx.shadowBlur = 8;
+      ctx.fillText(label, ax + aw / 2, landY - 8);
       ctx.shadowBlur = 0;
     }
 
@@ -3171,17 +3158,6 @@ class GameEngine {
 let _timeOrigin = performance.now();
 function timeNow() { return (performance.now() - _timeOrigin) / 1000; }
 function easeOutBack(t) { const c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
-
-function roundRect(ctx, x, y, w, h, r) {
-  const rad = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rad, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rad);
-  ctx.arcTo(x + w, y + h, x, y + h, rad);
-  ctx.arcTo(x, y + h, x, y, rad);
-  ctx.arcTo(x, y, x + w, y, rad);
-  ctx.closePath();
-}
 
 function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
   const {
@@ -4183,7 +4159,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=5be24220').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=bdb035cf').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
