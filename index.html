@@ -606,11 +606,12 @@
       </div>
       <p class="theme-label" style="margin-top:2px;opacity:.55;font-size:.68rem;">Shows where the block will land</p>
       <div class="toggle-row" style="margin-top:10px;">
-        <span>Haptic feedback</span>
+        <span>Rumble feedback</span>
         <button class="toggle on" id="hapticsToggle" type="button"></button>
       </div>
-      <p class="theme-label" id="hapticsHint" style="margin-top:2px;opacity:.55;font-size:.68rem;">Vibration + bass pulse on lands (mobile)</p>
-      <button class="secondary" id="hapticsTestBtn" type="button" style="width:100%;margin:8px 0 0;padding:10px 14px;font-size:.82rem;">Test Haptics</button>
+      <p class="theme-label" id="hapticsHint" style="margin-top:2px;opacity:.55;font-size:.68rem;line-height:1.4;">Checking device…</p>
+      <p class="theme-label" id="hapticsStatus" style="margin-top:4px;opacity:.65;font-size:.68rem;line-height:1.35;"></p>
+      <button class="secondary" id="hapticsTestBtn" type="button" style="width:100%;margin:8px 0 0;padding:10px 14px;font-size:.82rem;">Test Rumble</button>
       <div class="section-divider"></div>
       <p class="theme-label">Block theme <span id="themeUnlockHint"></span></p>
       <div class="theme-grid" id="themeGrid"></div>
@@ -773,6 +774,9 @@ class AudioEngine {
       this.musicGain.connect(this._filter);
       this.sfxGain = this.ctx.createGain();
       this.sfxGain.connect(this.master);
+      this.hapticGain = this.ctx.createGain();
+      this.hapticGain.gain.value = 1;
+      this.hapticGain.connect(this.master);
       this.applyGains();
     }
     return true;
@@ -891,14 +895,16 @@ class AudioEngine {
     }
   }
 
-  _playSfx(name, vol = 1) {
+  _playSfx(name, vol = 1, out = null) {
     const buf = this.buffers[name];
-    if (!buf || !this.ctx || !this.sfxOn) return;
+    if (!buf || !this.ctx) return;
+    const target = out || this.sfxGain;
+    if (!out && !this.sfxOn) return;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
     const g = this.ctx.createGain();
     g.gain.value = vol;
-    src.connect(g); g.connect(this.sfxGain);
+    src.connect(g); g.connect(target);
     src.start();
   }
 
@@ -911,50 +917,42 @@ class AudioEngine {
   playGameOver() { this._playSfx('gameover'); }
   playMilestone() { this._playSfx('great', 0.75); }
 
-  /** Bass thump through speaker — works on iPhone where navigator.vibrate does not. */
+  /** Bass thump through speaker — iPhone has no motor vibration in browser games. */
   playHapticThump(kind) {
-    if (!this.ctx || !this.sfxOn || !loadHaptics()) return;
+    if (!this.ctx || !loadHaptics() || !this.hapticGain) return;
+    const sfx = { test: 'perfect', perfect: 'perfect', combo: 'perfect', great: 'great', good: 'good', drop: 'drop', land: 'land', slice: 'slice', gameover: 'gameover' };
+    const sfxName = sfx[kind];
+    if (sfxName && this.buffers[sfxName]) {
+      const boost = kind === 'test' ? 0.95 : kind === 'perfect' || kind === 'combo' ? 0.72 : 0.55;
+      this._playSfx(sfxName, boost, this.hapticGain);
+    }
     const profiles = {
-      drop:    { f: 118, ms: 0.038, vol: 0.55 },
-      land:    { f: 82,  ms: 0.032, vol: 0.42 },
-      good:    { f: 102, ms: 0.04,  vol: 0.48 },
-      great:   { f: 92,  ms: 0.048, vol: 0.58 },
-      perfect: { f: 78,  ms: 0.062, vol: 0.72 },
-      combo:   { f: 72,  ms: 0.08,  vol: 0.82 },
-      slice:   { f: 64,  ms: 0.055, vol: 0.52 },
-      edge:    { f: 88,  ms: 0.03,  vol: 0.4 },
-      milestone: { f: 70, ms: 0.07, vol: 0.65 },
-      gameover: { f: 52, ms: 0.14, vol: 0.85 },
-      test:    { f: 85,  ms: 0.09,  vol: 0.75 },
+      drop:    { f: 110, ms: 0.05,  vol: 0.9 },
+      land:    { f: 85,  ms: 0.045, vol: 0.75 },
+      good:    { f: 100, ms: 0.055, vol: 0.8 },
+      great:   { f: 90,  ms: 0.065, vol: 0.88 },
+      perfect: { f: 75,  ms: 0.085, vol: 1.0 },
+      combo:   { f: 68,  ms: 0.11,  vol: 1.0 },
+      slice:   { f: 62,  ms: 0.07,  vol: 0.82 },
+      edge:    { f: 88,  ms: 0.04,  vol: 0.7 },
+      milestone: { f: 68, ms: 0.09, vol: 0.92 },
+      gameover: { f: 50, ms: 0.18, vol: 1.0 },
+      test:    { f: 80,  ms: 0.14,  vol: 1.0 },
     };
     const p = profiles[kind] || profiles.land;
     const t0 = this.ctx.currentTime;
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    o.type = 'sine';
+    o.type = 'triangle';
     o.frequency.setValueAtTime(p.f, t0);
-    o.frequency.exponentialRampToValueAtTime(Math.max(40, p.f * 0.55), t0 + p.ms);
+    o.frequency.exponentialRampToValueAtTime(Math.max(35, p.f * 0.45), t0 + p.ms);
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(p.vol * this.sfxVol, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(p.vol, t0 + 0.004);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + p.ms);
     o.connect(g);
-    g.connect(this.sfxGain);
+    g.connect(this.hapticGain);
     o.start(t0);
-    o.stop(t0 + p.ms + 0.01);
-    if (kind === 'combo') {
-      const o2 = this.ctx.createOscillator();
-      const g2 = this.ctx.createGain();
-      o2.type = 'sine';
-      o2.frequency.value = 95;
-      const t1 = t0 + 0.07;
-      g2.gain.setValueAtTime(0.0001, t1);
-      g2.gain.exponentialRampToValueAtTime(0.5 * this.sfxVol, t1 + 0.006);
-      g2.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.05);
-      o2.connect(g2);
-      g2.connect(this.sfxGain);
-      o2.start(t1);
-      o2.stop(t1 + 0.06);
-    }
+    o.stop(t0 + p.ms + 0.02);
   }
 }
 
@@ -3202,26 +3200,61 @@ function saveHaptics(on) {
 }
 
 const HAPTIC_VIBRATE = {
-  drop: 12,
-  land: 10,
-  good: [12, 18, 10],
-  great: [16, 22, 14],
-  perfect: [18, 28, 20, 45, 18],
-  combo: [14, 24, 14, 40, 22],
-  slice: [22, 16, 28],
-  milestone: [24, 40, 28],
-  edge: 30,
-  gameover: [50, 70, 50],
-  test: [35, 40, 35, 40, 90],
+  drop: 18,
+  land: 14,
+  good: [18, 24, 14],
+  great: [22, 30, 18],
+  perfect: [24, 36, 28, 55, 24],
+  combo: [20, 32, 20, 50, 30],
+  slice: [28, 20, 32],
+  milestone: [30, 50, 35],
+  edge: 40,
+  gameover: [80, 100, 80],
+  test: [120, 80, 120, 80, 200],
 };
+
+function hapticDeviceInfo() {
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const vibe = typeof navigator.vibrate === 'function';
+  return { ios, vibe };
+}
+
+function hapticVisual(kind) {
+  const wrap = $('wrap');
+  if (!wrap) return;
+  const strong = kind === 'test' || kind === 'perfect' || kind === 'combo' || kind === 'gameover';
+  wrap.style.transition = 'box-shadow .05s ease';
+  wrap.style.boxShadow = strong
+    ? '0 0 0 4px rgba(0,229,255,.9), 0 0 40px rgba(0,229,255,.35)'
+    : '0 0 0 2px rgba(124,77,255,.7)';
+  setTimeout(() => { wrap.style.boxShadow = '0 0 80px rgba(0, 229, 255, 0.08)'; }, strong ? 180 : 90);
+}
 
 function hapticPulse(kind, opts = {}) {
   if (!loadHaptics()) return;
   audio.playHapticThump(kind);
+  hapticVisual(kind);
   const doVibe = opts.vibrate !== false && navigator.vibrate;
   if (doVibe) {
     const p = HAPTIC_VIBRATE[kind];
     if (p !== undefined) navigator.vibrate(p);
+  }
+}
+
+function updateHapticsUI() {
+  const { ios, vibe } = hapticDeviceInfo();
+  const hint = $('hapticsHint');
+  const status = $('hapticsStatus');
+  if (hint) {
+    hint.textContent = ios
+      ? 'iPhone cannot vibrate the motor in browser games — rumble uses sound + a screen flash instead.'
+      : 'Android can vibrate the motor. Rumble also plays a bass thump and screen flash.';
+  }
+  if (status) {
+    status.textContent = vibe
+      ? '✓ Motor vibration available on this device'
+      : '✗ Motor vibration not available (use sound + flash)';
   }
 }
 
@@ -3895,14 +3928,7 @@ function syncSettingsUI() {
   $('sfxToggle').classList.toggle('on', audio.sfxOn);
   $('dropGuideToggle').classList.toggle('on', loadDropGuide());
   $('hapticsToggle').classList.toggle('on', loadHaptics());
-  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const hint = $('hapticsHint');
-  if (hint) {
-    hint.textContent = ios
-      ? 'iPhone uses bass pulses (Safari has no vibration API)'
-      : 'Vibration + bass pulse on drops and lands';
-  }
+  updateHapticsUI();
 }
 
 $('playBtn').onclick = () => startGame();
@@ -3943,8 +3969,22 @@ $('hapticsToggle').onclick = () => {
   if (on) hapticPulse('good');
 };
 $('hapticsTestBtn').onclick = async () => {
+  if (!loadHaptics()) {
+    showToast('Rumble is off', { color: '#ff6b9d', sub: 'Turn on Rumble feedback above', duration: 2200 });
+    return;
+  }
   await audio.init(true);
   hapticPulse('test');
+  const { ios, vibe } = hapticDeviceInfo();
+  showToast(vibe ? 'Motor should buzz now' : 'No motor vibration on this device', {
+    color: '#00e5ff',
+    sub: ios
+      ? 'iPhone: listen for a thump + cyan screen flash. Turn volume up.'
+      : vibe
+        ? 'Android: feel the buzz + hear the thump + see the flash'
+        : 'You should hear a thump and see a cyan screen flash',
+    duration: 4500,
+  });
 };
 $('musicToggle').onclick = () => {
   audio.musicOn = !audio.musicOn;
@@ -4012,7 +4052,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=b737b635').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=4defc17c').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
