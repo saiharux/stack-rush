@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build f5f4756c</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build fb4e28c5</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'f5f4756c';
+const ASSETS_VER = 'fb4e28c5';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1643,7 +1643,6 @@ class GameEngine {
     this.cloudLayers = this._genCloudLayers(6);
     this.birds = this._genBirds(3);
     this.motes = this._genMotes(40);
-    this._initSkyFerry();
     this.dropLandWorldY = 0;
     this.climbPulse = 0;
     this.missions = this.mode.missions !== false ? rollRunMissions(this.rng) : [];
@@ -1805,24 +1804,6 @@ class GameEngine {
       phase: i * 2.1,
       size: 0.8 + (i % 2) * 0.3,
     }));
-  }
-
-  _initSkyFerry() {
-    const id = this.cityId || 'neon';
-    const hash = id.split('').reduce((n, c) => n + c.charCodeAt(0), 0);
-    this.skyFerry = {
-      x: -0.12 - (hash % 10) * 0.008,
-      y: 0.2 + (hash % 6) * 0.012,
-      speed: 0.02 + (hash % 5) * 0.004,
-      bob: hash * 0.37,
-    };
-  }
-
-  _updateSkyFerry(dt) {
-    const f = this.skyFerry;
-    if (!f || this.altitudeBlend > 0.92 || this.cosmicBlend > 0.58) return;
-    f.x += dt * f.speed;
-    if (f.x > 1.14) f.x = -0.12;
   }
 
   towerTop() { return Math.min(...this.stack.map(b => b.top)); }
@@ -2041,7 +2022,6 @@ class GameEngine {
     if (this.climbPulse > 0) this.climbPulse = Math.max(0, this.climbPulse - dt * 1.8);
     this._updateRiseStreaks(dt);
     this._updateParticles(dt);
-    this._updateSkyFerry(dt);
   }
 
   _spawnRiseStreak() {
@@ -2893,95 +2873,6 @@ class GameEngine {
     ctx.globalAlpha = 1;
   }
 
-  _drawSkyFerry(ctx, alt, cosmic, t) {
-    const f = this.skyFerry;
-    if (!f || alt > 0.9 || cosmic > 0.58) return;
-    const accent = getCity(this.cityId).accent;
-    const cx = f.x * this.w;
-    const cableY = f.y * this.h - 18 + Math.sin(t * 0.9 + f.bob) * 3;
-    const cy = cableY + 16 + Math.sin(t * 1.15 + f.bob) * 4;
-    const fade = (1 - cosmic) * Math.min(1, 0.82 + alt * 0.12);
-    const cable = (px, py) => {
-      const sag = 14 + Math.sin(px / Math.max(1, this.w) * Math.PI) * 6;
-      return py - sag;
-    };
-
-    ctx.save();
-    ctx.globalAlpha = fade;
-    ctx.strokeStyle = 'rgba(210,220,240,0.55)';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-30, cable(-30, cableY));
-    for (let px = 0; px <= this.w; px += 28) ctx.lineTo(px, cable(px, cableY));
-    ctx.lineTo(this.w + 30, cable(this.w + 30, cableY));
-    ctx.stroke();
-
-    const hangY = cable(cx, cableY);
-    ctx.strokeStyle = 'rgba(190,200,220,0.65)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(cx - 10, hangY);
-    ctx.lineTo(cx - 8, cy - 12);
-    ctx.moveTo(cx + 10, hangY);
-    ctx.lineTo(cx + 8, cy - 12);
-    ctx.stroke();
-
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
-    glow.addColorStop(0, accent + '44');
-    glow.addColorStop(0.55, accent + '18');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 34, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.translate(cx, cy);
-    ctx.rotate(Math.sin(t * 0.85 + f.bob) * 0.06);
-    const carW = 40, carH = 22;
-    ctx.fillStyle = 'rgba(22,28,52,0.92)';
-    rr(ctx, -carW / 2, -carH / 2, carW, carH, 5);
-    ctx.fill();
-    ctx.fillStyle = accent;
-    ctx.fillRect(-carW / 2 + 3, -3, carW - 6, 6);
-    ctx.fillStyle = `rgba(255,236,160,${0.75 + Math.sin(t * 2.8 + f.bob) * 0.2})`;
-    rr(ctx, -9, -7, 18, 12, 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillRect(-7, -5, 14, 3);
-    if (this.cityId === 'toronto') {
-      ctx.fillStyle = '#ef5350';
-      ctx.fillRect(-carW / 2 + 5, -carH / 2 + 4, 8, 8);
-    } else if (this.cityId === 'moscow') {
-      ctx.fillStyle = '#ef5350';
-      ctx.beginPath();
-      ctx.moveTo(0, -carH / 2 - 2);
-      ctx.lineTo(6, -carH / 2 + 7);
-      ctx.lineTo(-6, -carH / 2 + 7);
-      ctx.closePath();
-      ctx.fill();
-    } else if (this.cityId === 'neon') {
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-carW / 2 - 2, -carH / 2 - 2, carW + 4, carH + 4);
-      ctx.shadowColor = accent;
-      ctx.shadowBlur = 10;
-      ctx.strokeRect(-carW / 2 - 2, -carH / 2 - 2, carW + 4, carH + 4);
-      ctx.shadowBlur = 0;
-    } else if (this.cityId === 'rome') {
-      ctx.fillStyle = 'rgba(210,150,100,0.9)';
-      ctx.fillRect(-carW / 2 + 4, carH / 2 - 4, carW - 8, 3);
-    } else if (this.cityId === 'dubai') {
-      ctx.fillStyle = 'rgba(255,210,80,0.9)';
-      ctx.fillRect(-carW / 2 + 4, -carH / 2 + 3, carW - 8, 3);
-    } else if (this.cityId === 'nyc') {
-      ctx.fillStyle = '#ffd54f';
-      ctx.fillRect(-carW / 2 + 4, -carH / 2 + 3, 10, 6);
-    }
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-
   _drawBirds(ctx, rise, alt, cosmic, t) {
     if (alt < 0.2 || alt > 0.75 || cosmic > 0.5) return;
     ctx.strokeStyle = 'rgba(30,35,50,0.55)';
@@ -3134,7 +3025,6 @@ class GameEngine {
 
     this._drawBirds(ctx, rise, alt, cosmic, t);
     this._drawCitySkyline(ctx, t);
-    this._drawSkyFerry(ctx, alt, cosmic, t);
 
     if (cosmic > 0.35) {
       const pr = this.w * 1.1;
@@ -3434,10 +3324,7 @@ function applyTheme(id) {
 function applyCity(id) {
   if (!isCityUnlocked(id)) return;
   saveCityId(id);
-  if (engine) {
-    engine.cityId = id;
-    engine._initSkyFerry();
-  }
+  if (engine) engine.cityId = id;
   renderCityGrid();
 }
 
@@ -4170,7 +4057,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=f5f4756c').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=fb4e28c5').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
