@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7ed7c283</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 56aea757</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '7ed7c283';
+const ASSETS_VER = '56aea757';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -964,7 +964,7 @@ class AudioEngine {
 const BLOCK_H = 32;
 const BLOCK_D = 14; // 3D depth
 const SKYLINE_BASE_INSET = 8; // water strip at bottom of skyline PNGs (see generate_city_skylines.py)
-const SKYLINE_SCREEN_FOOT = 0.64; // distant horizon at game start (decoupled from ground blocks)
+const SKYLINE_SCREEN_FOOT = 0.69; // distant horizon at game start (decoupled from ground blocks)
 const SKYLINE_CLIMB_SCROLL = 0.42; // scrollUp span before skyline foot tracks the platform
 const GRAVITY = 5200;
 const DROP_BOOST = 520;
@@ -1561,10 +1561,11 @@ const CITIES = {
   nyc:     { name: 'New York',  unlockScore: 600,  skyline: 'cities/nyc.png',     accent: '#ffd54f' },
   toronto: { name: 'Toronto',   unlockScore: 1200, skyline: 'cities/toronto.png', accent: '#7c4dff' },
   tokyo:   { name: 'Tokyo',     unlockScore: 2000, skyline: 'cities/tokyo.png',   accent: '#ff6b9d' },
-  london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff' },
+  london:  { name: 'London',    unlockScore: 2800, skyline: 'cities/london.png',  accent: '#80d8ff', skylineFocus: 0.31 },
+  moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350', vivid: true, skylineFocus: 0.33 },
+  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91', skylineFocus: 0.42 },
   dubai:   { name: 'Dubai',     unlockScore: 3600, skyline: 'cities/dubai.png',   accent: '#ffd54f' },
-  moscow:  { name: 'Moscow',    unlockScore: 4400, skyline: 'cities/moscow.png',  accent: '#ef5350', vivid: true },
-  rome:    { name: 'Rome',      unlockScore: 5200, skyline: 'cities/rome.png',    accent: '#ffab91' },
+
 };
 
 function getCity(id) { return CITIES[id] || CITIES.neon; }
@@ -2891,38 +2892,28 @@ class GameEngine {
     ctx.globalAlpha = 1;
   }
 
-  _drawSkylineWindowFlicker(ctx, left, topY, width, height, alpha, time) {
-    if (alpha <= 0.04) return;
-    const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
-    const seedBase = (this.cityId || 'neon').split('').reduce((n, c) => n + c.charCodeAt(0), 0);
-    const bandTop = topY + height * 0.1;
-    const bandH = height * 0.78;
-    const cols = Math.max(8, Math.floor(width / 12));
-    const rows = Math.max(6, Math.floor(bandH / 9));
-    const cellW = width / cols;
-    const cellH = bandH / rows;
+  _drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, footY, alpha) {
+    if (alpha <= 0.05) return;
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const seed = seedBase + col * 17.31 + row * 29.7;
-        if (rng(seed) > 0.44) continue;
-        const phase = time * (1.6 + rng(seed + 1) * 2.8) + seed * 0.65;
-        const flicker = 0.5 + 0.5 * Math.sin(phase);
-        if (flicker < 0.22) continue;
-        const wx = left + col * cellW + cellW * 0.28;
-        const wy = bandTop + row * cellH + cellH * 0.22;
-        const ww = 1.5 + rng(seed + 2) * 2.5;
-        const wh = 1.5 + rng(seed + 3) * 2.5;
-        const warm = rng(seed + 4) > 0.14;
-        const a = alpha * flicker * (warm ? 0.55 : 0.28);
-        ctx.fillStyle = warm
-          ? `rgba(255,${186 + (rng(seed + 5) * 44) | 0},${58 + (rng(seed + 6) * 48) | 0},${a})`
-          : `rgba(118,188,255,${a})`;
-        ctx.fillRect(wx, wy, ww, wh);
-      }
-    }
+    ctx.beginPath();
+    ctx.rect(0, footY, this.w, Math.min(40, tileH * 0.16));
+    ctx.clip();
+    ctx.globalAlpha = alpha * 0.14;
+    ctx.translate(0, footY * 2);
+    ctx.scale(1, -1);
+    ctx.drawImage(img, drawX, topY, tileW, tileH);
     ctx.restore();
+  }
+
+  _drawSkylineAccentGlow(ctx, footY, accent, alpha, time) {
+    if (alpha <= 0.05) return;
+    const pulse = 0.88 + 0.12 * Math.sin(time * 0.55);
+    const g = ctx.createLinearGradient(0, footY - 48, 0, footY + 18);
+    g.addColorStop(0, accent + '00');
+    g.addColorStop(0.5, accent + Math.floor(alpha * pulse * 32).toString(16).padStart(2, '0'));
+    g.addColorStop(1, accent + '00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, footY - 48, this.w, 66);
   }
 
   _drawCitySkyline(ctx, t) {
@@ -2941,14 +2932,17 @@ class GameEngine {
       const tileH = img.height * scale;
       const groundNorm = (img.height - SKYLINE_BASE_INSET) / img.height;
       const topY = skylineFootY - tileH * groundNorm;
-      const drawX = (this.w - tileW) * 0.5;
+      const focus = getCity(this.cityId).skylineFocus ?? 0.5;
+      const drawX = Math.min(0, Math.max(this.w - tileW, this.w * 0.5 - focus * img.width * scale));
+      const accent = getCity(this.cityId).accent || '#80d8ff';
 
       ctx.save();
       ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
       if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
       ctx.drawImage(img, drawX, topY, tileW, tileH);
       ctx.restore();
-      this._drawSkylineWindowFlicker(ctx, drawX, topY, tileW, tileH, cityAlpha, t);
+      this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
+      this._drawSkylineAccentGlow(ctx, skylineFootY, accent, cityAlpha, t);
       return;
     }
 
@@ -2961,7 +2955,6 @@ class GameEngine {
       rr(ctx, x, by, bw, bh, 2); ctx.fill();
       x += bw + 5 + rng(x + 3) * 8;
     }
-    this._drawSkylineWindowFlicker(ctx, 0, skylineFootY - this.h * 0.22, this.w, this.h * 0.22, cityAlpha, t);
   }
 
   _drawBackground(ctx, t) {
@@ -4064,7 +4057,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=7ed7c283').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=56aea757').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
