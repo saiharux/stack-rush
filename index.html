@@ -609,7 +609,8 @@
         <span>Haptic feedback</span>
         <button class="toggle on" id="hapticsToggle" type="button"></button>
       </div>
-      <p class="theme-label" style="margin-top:2px;opacity:.55;font-size:.68rem;">Vibration on perfect lands &amp; drops (mobile)</p>
+      <p class="theme-label" id="hapticsHint" style="margin-top:2px;opacity:.55;font-size:.68rem;">Vibration + bass pulse on lands (mobile)</p>
+      <button class="secondary" id="hapticsTestBtn" type="button" style="width:100%;margin:8px 0 0;padding:10px 14px;font-size:.82rem;">Test Haptics</button>
       <div class="section-divider"></div>
       <p class="theme-label">Block theme <span id="themeUnlockHint"></span></p>
       <div class="theme-grid" id="themeGrid"></div>
@@ -909,6 +910,52 @@ class AudioEngine {
   playSlice() { this._playSfx('slice'); }
   playGameOver() { this._playSfx('gameover'); }
   playMilestone() { this._playSfx('great', 0.75); }
+
+  /** Bass thump through speaker — works on iPhone where navigator.vibrate does not. */
+  playHapticThump(kind) {
+    if (!this.ctx || !this.sfxOn || !loadHaptics()) return;
+    const profiles = {
+      drop:    { f: 118, ms: 0.038, vol: 0.55 },
+      land:    { f: 82,  ms: 0.032, vol: 0.42 },
+      good:    { f: 102, ms: 0.04,  vol: 0.48 },
+      great:   { f: 92,  ms: 0.048, vol: 0.58 },
+      perfect: { f: 78,  ms: 0.062, vol: 0.72 },
+      combo:   { f: 72,  ms: 0.08,  vol: 0.82 },
+      slice:   { f: 64,  ms: 0.055, vol: 0.52 },
+      edge:    { f: 88,  ms: 0.03,  vol: 0.4 },
+      milestone: { f: 70, ms: 0.07, vol: 0.65 },
+      gameover: { f: 52, ms: 0.14, vol: 0.85 },
+      test:    { f: 85,  ms: 0.09,  vol: 0.75 },
+    };
+    const p = profiles[kind] || profiles.land;
+    const t0 = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(p.f, t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40, p.f * 0.55), t0 + p.ms);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(p.vol * this.sfxVol, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + p.ms);
+    o.connect(g);
+    g.connect(this.sfxGain);
+    o.start(t0);
+    o.stop(t0 + p.ms + 0.01);
+    if (kind === 'combo') {
+      const o2 = this.ctx.createOscillator();
+      const g2 = this.ctx.createGain();
+      o2.type = 'sine';
+      o2.frequency.value = 95;
+      const t1 = t0 + 0.07;
+      g2.gain.setValueAtTime(0.0001, t1);
+      g2.gain.exponentialRampToValueAtTime(0.5 * this.sfxVol, t1 + 0.006);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.05);
+      o2.connect(g2);
+      g2.connect(this.sfxGain);
+      o2.start(t1);
+      o2.stop(t1 + 0.06);
+    }
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -1848,6 +1895,22 @@ class GameEngine {
     return true;
   }
 
+  estimateFallMs() {
+    let y = this.activeWorldY;
+    const target = this.dropLandWorldY;
+    let vy = DROP_BOOST;
+    const dir = Math.sign(target - y) || 1;
+    let t = 0;
+    const step = 1 / 240;
+    while (t < 1.2) {
+      vy = Math.min(vy + GRAVITY * step, 3000);
+      y += dir * vy * step;
+      t += step;
+      if ((dir > 0 && y >= target) || (dir < 0 && y <= target)) break;
+    }
+    return Math.max(40, Math.min(520, Math.round(t * 1000)));
+  }
+
   drop() {
     if (this.over || this.phase !== 'moving') return false;
     this.phase = 'dropping';
@@ -2086,7 +2149,7 @@ class GameEngine {
       }
       this.over = true; this.phase = 'done'; this.combo = 0;
       this.endReason = 'fall';
-      gamePulse('gameover');
+      hapticPulse('gameover');
       this.audio?.playGameOver();
       return;
     }
@@ -2115,7 +2178,7 @@ class GameEngine {
       }
       if (sliced) {
         this.audio?.playSlice();
-        gamePulse('slice');
+        hapticPulse('slice', { vibrate: false });
       }
     }
     if (perfect) this.combo += 1;
@@ -2163,13 +2226,13 @@ class GameEngine {
       this.shake = st.shake;
       if (tier === 'perfect') {
         this.audio?.playPerfect();
-        gamePulse(this.combo >= 5 ? 'combo' : 'perfect');
+        hapticPulse(this.combo >= 5 ? 'combo' : 'perfect', { vibrate: false });
         this.screenPulse = 0.42;
         this.screenPulseColor = st.color;
         this.comboGlow = Math.min(1, 0.35 + this.combo * 0.12);
       }
-      else if (tier === 'great') { this.audio?.playGreat(); gamePulse('great'); }
-      else { this.audio?.playGood(); gamePulse('good'); }
+      else if (tier === 'great') { this.audio?.playGreat(); hapticPulse('great', { vibrate: false }); }
+      else { this.audio?.playGood(); hapticPulse('good', { vibrate: false }); }
       const ringCount = st.rings || 0;
       for (let ri = 0; ri < ringCount; ri++) {
         this.perfectRings.push({
@@ -2200,7 +2263,7 @@ class GameEngine {
     } else {
       this.shake = 3 + impact * 3;
       this.audio?.playLand();
-      gamePulse('land');
+      hapticPulse('land', { vibrate: false });
       if (gained >= 25) this.scoreBump = gained;
     }
 
@@ -2231,7 +2294,7 @@ class GameEngine {
       });
       this.ripples.push({ x: cx, y: landY, r: 10, life: 0.65, max: 0.65, color: '#ffd54f', bright: true });
       this.audio?.playMilestone();
-      gamePulse('milestone');
+      hapticPulse('milestone');
     }
     this._snapScroll();
     this._checkAltitudeZone();
@@ -3138,23 +3201,40 @@ function saveHaptics(on) {
   localStorage.setItem('stackrush_settings', JSON.stringify(s));
 }
 
-function gamePulse(kind) {
-  if (!loadHaptics() || !navigator.vibrate) return;
-  const patterns = {
-    drop: 5,
-    land: 3,
-    good: [5, 10],
-    great: [7, 14, 8],
-    perfect: [10, 18, 14, 32, 12],
-    combo: [6, 12, 6, 22],
-    slice: [14, 10, 18],
-    milestone: [18, 36, 22],
-    edge: 22,
-    gameover: [36, 55, 36],
-  };
-  const p = patterns[kind];
-  if (p !== undefined) navigator.vibrate(p);
+const HAPTIC_VIBRATE = {
+  drop: 12,
+  land: 10,
+  good: [12, 18, 10],
+  great: [16, 22, 14],
+  perfect: [18, 28, 20, 45, 18],
+  combo: [14, 24, 14, 40, 22],
+  slice: [22, 16, 28],
+  milestone: [24, 40, 28],
+  edge: 30,
+  gameover: [50, 70, 50],
+  test: [35, 40, 35, 40, 90],
+};
+
+function hapticPulse(kind, opts = {}) {
+  if (!loadHaptics()) return;
+  audio.playHapticThump(kind);
+  const doVibe = opts.vibrate !== false && navigator.vibrate;
+  if (doVibe) {
+    const p = HAPTIC_VIBRATE[kind];
+    if (p !== undefined) navigator.vibrate(p);
+  }
 }
+
+/** Schedule land rumble inside the tap gesture (Android blocks delayed vibrate otherwise). */
+function hapticArmLandPulse(engine) {
+  if (!loadHaptics() || !navigator.vibrate || !engine) return;
+  const ms = engine.estimateFallMs();
+  const bump = HAPTIC_VIBRATE.perfect;
+  const pattern = Array.isArray(bump) ? [0, ms, ...bump] : [0, ms, bump];
+  navigator.vibrate(pattern);
+}
+
+function gamePulse(kind) { hapticPulse(kind); }
 
 function loadBest() { return +(localStorage.getItem('stackrush_best') || 0); }
 function saveBest(v) { localStorage.setItem('stackrush_best', String(v)); }
@@ -3741,7 +3821,8 @@ function onTap(e) {
   if (screen === 'play' && !paused && !perkPaused && engine) {
     if (engine.drop()) {
       tapLock = true;
-      gamePulse('drop');
+      hapticPulse('drop');
+      hapticArmLandPulse(engine);
       dismissTutorial();
       setTimeout(() => { tapLock = false; }, 90);
     }
@@ -3814,6 +3895,14 @@ function syncSettingsUI() {
   $('sfxToggle').classList.toggle('on', audio.sfxOn);
   $('dropGuideToggle').classList.toggle('on', loadDropGuide());
   $('hapticsToggle').classList.toggle('on', loadHaptics());
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const hint = $('hapticsHint');
+  if (hint) {
+    hint.textContent = ios
+      ? 'iPhone uses bass pulses (Safari has no vibration API)'
+      : 'Vibration + bass pulse on drops and lands';
+  }
 }
 
 $('playBtn').onclick = () => startGame();
@@ -3851,7 +3940,11 @@ $('hapticsToggle').onclick = () => {
   const on = !loadHaptics();
   saveHaptics(on);
   syncSettingsUI();
-  if (on) gamePulse('good');
+  if (on) hapticPulse('good');
+};
+$('hapticsTestBtn').onclick = async () => {
+  await audio.init(true);
+  hapticPulse('test');
 };
 $('musicToggle').onclick = () => {
   audio.musicOn = !audio.musicOn;
@@ -3919,7 +4012,7 @@ resize();
 runLoading();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=a7510427').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=b737b635').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
