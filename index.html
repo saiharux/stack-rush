@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 4b4530c4</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 3d2b879d</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -1060,9 +1060,9 @@ function speedForLevel(level) {
 
 function rateLanding(mis, sizeMis, refW, perfectMul = 1, alignEase = 1) {
   const ease = Math.max(1, alignEase);
-  const pR = (PERFECT_RATIO * perfectMul) / ease;
-  const gR = (GREAT_RATIO * Math.min(1.15, perfectMul)) / ease;
-  const goodR = GOOD_RATIO / ease;
+  const pR = PERFECT_RATIO * perfectMul * ease;
+  const gR = GREAT_RATIO * Math.min(1.15, perfectMul) * ease;
+  const goodR = GOOD_RATIO * ease;
   if (mis <= refW * pR && sizeMis <= refW * pR) return 'perfect';
   if (mis <= refW * gR && sizeMis <= refW * gR) return 'great';
   if (mis <= refW * goodR && sizeMis <= refW * goodR) return 'good';
@@ -1736,6 +1736,10 @@ class GameEngine {
     return (worldX - this.w * 0.5) * this.viewZoom + this.w * 0.5;
   }
 
+  screenToWorldX(screenX) {
+    return (screenX - this.w * 0.5) / this.viewZoom + this.w * 0.5;
+  }
+
   worldToScreenW(worldW) {
     return worldW * this.viewZoom;
   }
@@ -1792,7 +1796,7 @@ class GameEngine {
     if (opts.retry && opts.prevActive) {
       const width = opts.prevActive.width;
       this.active = {
-        left: (this.w - width) / 2,
+        left: this.screenToWorldX((this.w - width) / 2),
         width,
         color: opts.prevActive.color,
         special: opts.prevActive.special || null,
@@ -1814,7 +1818,7 @@ class GameEngine {
       this._showChallengeBanner({ name: special.label, desc: special.desc, color: special.color });
     }
     this.active = {
-      left: (this.w - width) / 2,
+      left: this.screenToWorldX((this.w - width) / 2),
       width,
       color: (this.level - 1) % this.palette.length,
       special,
@@ -1833,7 +1837,7 @@ class GameEngine {
       this.bossFloor = BOSS_FLOORS[idx];
       if (this.bossFloor.widthMul) {
         this.active.width = Math.min(this.w * 0.9, this.active.width * this.bossFloor.widthMul);
-        this.active.left = (this.w - this.active.width) / 2;
+        this.active.left = this.screenToWorldX((this.w - this.active.width) / 2);
       }
       this.windPhase = this._rnd() * Math.PI * 2;
       this._showChallengeBanner(this.bossFloor, true);
@@ -1967,22 +1971,25 @@ class GameEngine {
 
     if (!this.over && this.phase === 'moving') {
       this.moveT += dt * this._effectiveSpeed();
+      const top = this.stack[this.stack.length - 1];
       const ease = earlyEaseT(this.level);
-      const amp = (this.w - this.active.width) / 2 * (1 - ease * 0.22);
-      const cx = this.w / 2;
+      const sw = this.worldToScreenW(this.active.width);
+      const amp = (this.w - sw) / 2 * (1 - ease * 0.22);
+      const anchorScreen = this.worldToScreenX(top.left + top.width / 2);
       const mirror = this.bossFloor?.id === 'mirror';
       const wave = (mirror ? -1 : 1) * (Math.sin(this.moveT) * 0.93 + Math.sin(this.moveT * 2.17) * 0.07);
-      let left = cx - this.active.width / 2 + wave * amp;
+      let screenLeft = anchorScreen - sw / 2 + wave * amp;
       if (this.bossFloor?.id === 'quake') {
-        left += Math.sin(this.moveT * 3.4) * 22 + Math.sin(this.moveT * 1.1) * 10;
+        screenLeft += Math.sin(this.moveT * 3.4) * 22 + Math.sin(this.moveT * 1.1) * 10;
       }
       if (this.floorChallenge?.id === 'wind' && !this.perkNoWind) {
         this.windPhase += dt * 2.1;
         const windMul = 1 - ease * 0.65;
-        left += (Math.sin(this.windPhase) * 28 + Math.sin(this.windPhase * 0.61) * 12) * windMul;
+        screenLeft += (Math.sin(this.windPhase) * 28 + Math.sin(this.windPhase * 0.61) * 12) * windMul;
       }
-      const pad = this.active.width * 0.15;
-      this.active.left = Math.max(-pad, Math.min(this.w - this.active.width + pad, left));
+      const pad = sw * 0.15;
+      screenLeft = Math.max(-pad, Math.min(this.w - sw + pad, screenLeft));
+      this.active.left = this.screenToWorldX(screenLeft);
     } else if (!this.over && this.phase === 'dropping') {
       const targetWorld = this.dropLandWorldY;
       this.velY = Math.min(this.velY + GRAVITY * dt, 3000);
@@ -2314,7 +2321,7 @@ class GameEngine {
   _updateTrails(dt) {
     if (!this.trail.color || !this.active || this.phase === 'settling' || this.over) return;
     if (this.phase === 'moving' && this._rnd() < dt * 28) {
-      const ax = this.active.left + this.active.width / 2;
+      const ax = this.worldToScreenX(this.active.left + this.active.width / 2);
       const ay = this.activeScreenY + this.blockScreenH() / 2;
       this.trailPts.push({
         x: ax + (this._rnd() - 0.5) * this.active.width * 0.5,
@@ -4009,7 +4016,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=4b4530c4').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=3d2b879d').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
