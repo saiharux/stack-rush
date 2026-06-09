@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 43f00d6a</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 0516c1ad</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '43f00d6a';
+const ASSETS_VER = '0516c1ad';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1029,14 +1029,13 @@ function skyPaletteAt(meters) {
   return { top: last.skyTop, mid: last.skyMid, bot: last.skyBot, sun: last.sun, t: 1 };
 }
 
-/** Night city sky — dark navy at street; climbs into darker space (never brightens). */
+/** Night city sky — neutral dark at street; climbs into darker space (never brightens). */
 function nightSkyStops(meters, cosmic) {
   const climb = Math.min(1, meters / 90);
-  const street = Math.max(0, 1 - meters / 40);
-  const nightZenith = lerpHex('#020408', '#010306', climb);
-  const nightUpper = lerpHex('#070b14', '#04060c', climb * 0.65);
-  const nightLower = lerpHex('#0a101c', '#060a10', climb * 0.55);
-  const nightBaseHorizon = lerpHex('#0c1420', '#070a12', climb * 0.45);
+  const nightZenith = lerpHex('#020202', '#010101', climb);
+  const nightUpper = lerpHex('#050505', '#030303', climb * 0.65);
+  const nightLower = lerpHex('#080808', '#050505', climb * 0.55);
+  const nightBaseHorizon = lerpHex('#0a0a0a', '#060606', climb * 0.45);
   const nightHorizon = nightBaseHorizon;
 
   const spaceT = Math.min(1, Math.max(cosmic * 0.92, Math.max(0, (meters - 70) / 110)));
@@ -2608,13 +2607,13 @@ class GameEngine {
     if (gY < this.h + 30) {
       const sg = ctx.createLinearGradient(0, gY + 20, 0, this.h);
       sg.addColorStop(0, 'rgba(0,0,0,0)');
-      sg.addColorStop(0.35, 'rgba(4,6,10,.72)');
-      sg.addColorStop(1, 'rgba(2,3,6,.96)');
+      sg.addColorStop(0.35, 'rgba(4,4,6,.72)');
+      sg.addColorStop(1, 'rgba(2,2,4,.96)');
       ctx.fillStyle = sg;
       ctx.fillRect(0, gY + 8, this.w, Math.max(0, this.h - gY));
       const pw = Math.min(this.w * 0.72, this.stack[0].width * this.viewZoom + 60);
       const px = this.w / 2 - pw / 2;
-      ctx.fillStyle = 'rgba(18,22,30,.55)';
+      ctx.fillStyle = 'rgba(14,14,16,.5)';
       ctx.fillRect(px, gY, pw, 2);
     }
 
@@ -2877,16 +2876,7 @@ class GameEngine {
   }
 
   _drawHorizonGlow(ctx, gY, alt, cosmic) {
-    if (cosmic > 0.35 || this.altitudeMeters > 25) return;
-    const glow = ctx.createLinearGradient(0, gY - 50, 0, gY + 12);
-    glow.addColorStop(0, 'rgba(0,0,0,0)');
-    glow.addColorStop(0.75, '#3830500a');
-    glow.addColorStop(0.92, '#4838280c');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = 0.1 * (1 - this.altitudeMeters / 25);
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, gY - 55, this.w, 70);
-    ctx.globalAlpha = 1;
+    /* No colored street-lift tint — keep the build platform area neutral. */
   }
 
   _drawMotes(ctx, rise, alt, cosmic, t) {
@@ -2970,7 +2960,7 @@ class GameEngine {
     const bandTop = footY - bandH;
     const wash = ctx.createLinearGradient(0, bandTop, 0, footY + 6);
     wash.addColorStop(0, 'rgba(0,0,0,0)');
-    wash.addColorStop(0.5, 'rgba(14,18,26,0.14)');
+    wash.addColorStop(0.5, 'rgba(0,0,0,0.12)');
     wash.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.save();
     ctx.globalAlpha = alpha * night * 0.65;
@@ -3003,7 +2993,7 @@ class GameEngine {
     if (alpha <= 0.05) return;
     ctx.save();
     ctx.globalAlpha = Math.min(1, alpha * 0.45);
-    ctx.fillStyle = 'rgba(32,38,50,0.5)';
+    ctx.fillStyle = 'rgba(18,18,20,0.45)';
     ctx.fillRect(0, footY, this.w, 1);
     ctx.restore();
   }
@@ -3084,7 +3074,7 @@ class GameEngine {
         const py = (s.y * this.h * 0.88 - rise * (0.12 + s.layer * 0.18)) % (this.h + 20);
         const tw = 0.45 + Math.sin(t * (1.1 + s.layer * 0.4) + s.x * 12) * 0.4;
         ctx.globalAlpha = tw * starBright * (0.55 + s.layer * 0.22);
-        ctx.fillStyle = ['#ffffff', '#d8e8ff', '#fff4e8'][s.hue % 3];
+        ctx.fillStyle = night > 0.35 ? '#ffffff' : ['#ffffff', '#e8e8e8', '#f0f0f0'][s.hue % 3];
         const sz = 0.8 + s.layer * 0.55 + (night > 0.4 ? 0.4 : cosmic * 0.5);
         if (py > 0 && py < this.h * 0.82) ctx.fillRect(px, py, sz, sz);
       });
@@ -4150,7 +4140,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=43f00d6a').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=0516c1ad').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
