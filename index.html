@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build c932c326</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build bee4790c</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'c932c326';
+const ASSETS_VER = 'bee4790c';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2965,48 +2965,50 @@ class GameEngine {
 
   _drawSkylineDockGlow(ctx, footY, accent, alpha) {
     if (alpha <= 0.05) return;
-    const warm = lerpHex(accent, '#ffb060', 0.52);
-    const amber = lerpHex('#c87840', '#ff9858', 0.38);
+    const warm = lerpHex(accent, '#ffb060', 0.42);
+    const amber = lerpHex('#c87840', '#ff9858', 0.32);
+    const waterH = 38;
     ctx.save();
-    const pool = ctx.createLinearGradient(0, footY - 2, 0, footY + 30);
-    pool.addColorStop(0, 'rgba(0,0,0,0)');
-    pool.addColorStop(0.12, warm + '14');
-    pool.addColorStop(0.38, amber + '26');
-    pool.addColorStop(0.68, amber + '12');
+    ctx.beginPath();
+    ctx.rect(0, footY + 1, this.w, waterH);
+    ctx.clip();
+    const pool = ctx.createLinearGradient(0, footY + 1, 0, footY + waterH);
+    pool.addColorStop(0, warm + '20');
+    pool.addColorStop(0.22, amber + '16');
+    pool.addColorStop(0.55, amber + '08');
     pool.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = alpha * 0.82;
+    ctx.globalAlpha = alpha * 0.5;
     ctx.fillStyle = pool;
-    ctx.fillRect(0, footY - 2, this.w, 34);
-
-    const shimmer = ctx.createLinearGradient(0, footY, this.w, footY);
+    ctx.fillRect(0, footY + 1, this.w, waterH);
+    const shimmer = ctx.createLinearGradient(0, footY + 1, this.w, footY + 1);
     shimmer.addColorStop(0, 'rgba(0,0,0,0)');
-    shimmer.addColorStop(0.18, warm + '44');
-    shimmer.addColorStop(0.5, '#ffd09066');
-    shimmer.addColorStop(0.82, warm + '33');
+    shimmer.addColorStop(0.22, warm + '33');
+    shimmer.addColorStop(0.5, '#ffd09044');
+    shimmer.addColorStop(0.78, warm + '28');
     shimmer.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = alpha * 0.65;
+    ctx.globalAlpha = alpha * 0.45;
     ctx.fillStyle = shimmer;
-    ctx.fillRect(0, footY, this.w, 4);
+    ctx.fillRect(0, footY + 1, this.w, 2);
     ctx.restore();
   }
 
   _drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, footY, alpha) {
     if (alpha <= 0.05) return;
-    const reflH = Math.min(52, tileH * 0.22);
+    const reflH = Math.min(48, tileH * 0.2);
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, footY + 1, this.w, reflH);
     ctx.clip();
     ctx.translate(0, footY * 2);
     ctx.scale(1, -1);
-    ctx.globalAlpha = alpha * 0.2;
-    ctx.filter = 'brightness(0.72) saturate(1.18) sepia(0.22)';
+    ctx.globalAlpha = alpha * 0.17;
+    ctx.filter = 'brightness(0.82) saturate(1.05)';
     ctx.drawImage(img, drawX, topY, tileW, tileH);
     ctx.filter = 'none';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const fade = ctx.createLinearGradient(0, footY + 6, 0, footY + reflH);
+    const fade = ctx.createLinearGradient(0, footY + 4, 0, footY + reflH);
     fade.addColorStop(0, 'rgba(0,0,0,0)');
-    fade.addColorStop(0.55, 'rgba(0,0,0,0)');
+    fade.addColorStop(0.45, 'rgba(0,0,0,0)');
     fade.addColorStop(1, 'rgba(0,0,0,1)');
     ctx.globalCompositeOperation = 'destination-out';
     ctx.globalAlpha = 1;
@@ -3054,22 +3056,15 @@ class GameEngine {
 
   _drawSkylineShoreLine(ctx, footY, accent, alpha) {
     if (alpha <= 0.05) return;
-    const warm = lerpHex(accent, '#ffc880', 0.48);
-    const cool = lerpHex(accent, '#c8d8f0', 0.28);
+    const edge = lerpHex(accent, '#d8e8ff', 0.38);
+    const warm = lerpHex(accent, '#ffc880', 0.35);
     ctx.save();
-    const g = ctx.createLinearGradient(0, footY - 3, 0, footY + 4);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.55, warm + '38');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = alpha * 0.5;
-    ctx.fillStyle = g;
-    ctx.fillRect(0, footY - 2, this.w, 6);
-    ctx.globalAlpha = Math.min(1, alpha * 0.85);
-    ctx.fillStyle = warm + 'bb';
+    ctx.globalAlpha = Math.min(1, alpha * 0.75);
+    ctx.fillStyle = edge + '99';
     ctx.fillRect(0, footY, this.w, 1);
-    ctx.globalAlpha = alpha * 0.35;
-    ctx.fillStyle = cool + '55';
-    ctx.fillRect(0, footY + 2, this.w, 1);
+    ctx.globalAlpha = alpha * 0.4;
+    ctx.fillStyle = warm + '66';
+    ctx.fillRect(0, footY + 1, this.w, 1);
     ctx.restore();
   }
 
@@ -3084,7 +3079,6 @@ class GameEngine {
     const img = CityBank.get(this.cityId);
 
     this._drawSkylineSkyWash(ctx, skylineFootY, cityAlpha, night);
-    this._drawSkylineDockGlow(ctx, skylineFootY, accent, cityAlpha);
 
     if (img && img.complete && img.naturalWidth > 0) {
       const vivid = !!getCity(this.cityId).vivid;
@@ -3099,6 +3093,7 @@ class GameEngine {
 
       this._drawSkylineImage(ctx, img, drawX, topY, tileW, tileH, cityAlpha, vivid);
       this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
+      this._drawSkylineDockGlow(ctx, skylineFootY, accent, cityAlpha);
       this._drawSkylineShoreLine(ctx, skylineFootY, accent, cityAlpha);
       return;
     }
@@ -4192,7 +4187,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=c932c326').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=bee4790c').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
