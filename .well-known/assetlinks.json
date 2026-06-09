@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.stackrush.game",
+      "sha256_cert_fingerprints": [
+        "F0:B3:1D:A0:C4:AA:F9:B3:5E:99:F8:A3:05:5C:C5:38:C2:9D:BF:01:E1:55:32:8C:D0:2B:8F:F8:4F:5C:19:5A"
+      ]
+    }
+  }
+]
