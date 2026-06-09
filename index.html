@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build bee4790c</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build cdcc5426</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'bee4790c';
+const ASSETS_VER = 'cdcc5426';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1089,6 +1089,33 @@ function touchAlignEase() {
   return 1;
 }
 
+function isTouchInput() {
+  return touchAlignEase() > 1;
+}
+
+function touchMotionScale() {
+  return isTouchInput() ? 0.62 : 1;
+}
+
+function dropLagSec() {
+  return isTouchInput() ? 0.072 : 0.016;
+}
+
+function settleDurFor(tier, combo = 0) {
+  const base = tier === 'perfect' ? 0.055 : tier === 'great' ? 0.09 : tier === 'good' ? 0.12 : 0.14;
+  const comboCut = Math.min(0.038, Math.max(0, combo - 1) * 0.006);
+  return Math.max(0.042, base - comboCut);
+}
+
+function classicSpawnWidth(level, width) {
+  if (level < 20) return width;
+  return width * Math.pow(0.993, level - 19);
+}
+window.settleDurFor = settleDurFor;
+window.classicSpawnWidth = classicSpawnWidth;
+window.dropLagSec = dropLagSec;
+window.touchMotionScale = touchMotionScale;
+
 function landingOffset(a, top) {
   const mis = Math.abs(a.left - top.left);
   const sizeMis = Math.abs(a.width - top.width);
@@ -1141,9 +1168,10 @@ function rateLandingBlocks(a, top, perfectMul = 1, alignEase = 1, engine = null)
   const ease = Math.max(1, alignEase);
   if (engine) {
     const { edgePx, refPx } = landingOffsetPx(engine, a, top);
-    const pLim = Math.max(14, refPx * PERFECT_RATIO * perfectMul * ease);
-    const gLim = Math.max(26, refPx * GREAT_RATIO * Math.min(1.15, perfectMul) * ease);
-    const goodLim = Math.max(40, refPx * GOOD_RATIO * ease);
+    const zoomEase = Math.min(1.9, 1 / Math.max(0.35, engine.viewZoom || 1));
+    const pLim = Math.max(14 * zoomEase, refPx * PERFECT_RATIO * perfectMul * ease);
+    const gLim = Math.max(26 * zoomEase, refPx * GREAT_RATIO * Math.min(1.15, perfectMul) * ease);
+    const goodLim = Math.max(40 * zoomEase, refPx * GOOD_RATIO * ease);
     if (edgePx <= pLim && cov >= 0.75) return 'perfect';
     if (edgePx <= gLim && cov >= 0.55) return 'great';
     if (edgePx <= goodLim && cov >= 0.35) return 'good';
@@ -1742,7 +1770,8 @@ class GameEngine {
     this.blinkPhase = 0;
     this.dailyClaimed = false;
     this.challengeBannerT = 0;
-    this.settleDur = 0.16;
+    this.settleDur = 0.14;
+    this.lastLandTier = 'none';
     this.nextPerkM = 30;
     this.runPerks = [];
     this.perkPerfectMul = 1;
@@ -1908,6 +1937,7 @@ class GameEngine {
     const ref = this.stack[this.stack.length - 1];
     let width = ref.width;
     if (this.mode.widthDecay) width = Math.min(this.w * 0.92, width * this.mode.widthDecay);
+    else if (this.modeId === 'classic') width = Math.min(this.w * 0.92, classicSpawnWidth(this.level, width));
     let special = null;
     if (this.level >= 12 && this.level % 8 === 7) {
       const idx = this.rng
@@ -1958,7 +1988,7 @@ class GameEngine {
     el.style.borderColor = ch.color + '66';
     el.style.color = ch.color;
     el.classList.add('show');
-    this.challengeBannerT = 3.2;
+    this.challengeBannerT = 2.0;
   }
 
   _effectiveSpeed() {
@@ -2018,8 +2048,11 @@ class GameEngine {
 
   drop() {
     if (this.over || this.phase !== 'moving') return false;
-    const lag = touchAlignEase() > 1 ? 0.055 : 0.014;
-    if (this.activeVelX) this.active.left -= this.activeVelX * lag;
+    const lag = dropLagSec();
+    if (this.activeVelX) {
+      this.active.left -= this.activeVelX * lag;
+      if (isTouchInput()) this.active.left -= this.activeVelX * 0.014;
+    }
     this.phase = 'dropping';
     this.velY = DROP_BOOST;
     this.dropLandWorldY = this.towerTop() - BLOCK_H;
@@ -2084,12 +2117,13 @@ class GameEngine {
       const mirror = this.bossFloor?.id === 'mirror';
       const wave = (mirror ? -1 : 1) * (Math.sin(this.moveT) * 0.93 + Math.sin(this.moveT * 2.17) * 0.07);
       let screenLeft = topLeftScreen + wave * amp;
+      const motion = touchMotionScale();
       if (this.bossFloor?.id === 'quake') {
-        screenLeft += Math.sin(this.moveT * 3.4) * 22 + Math.sin(this.moveT * 1.1) * 10;
+        screenLeft += (Math.sin(this.moveT * 3.4) * 22 + Math.sin(this.moveT * 1.1) * 10) * motion;
       }
       if (this.floorChallenge?.id === 'wind' && !this.perkNoWind) {
         this.windPhase += dt * 2.1;
-        const windMul = 1 - ease * 0.65;
+        const windMul = (1 - ease * 0.65) * motion;
         screenLeft += (Math.sin(this.windPhase) * 28 + Math.sin(this.windPhase * 0.61) * 12) * windMul;
       }
       const prevLeft = this.active.left;
@@ -2409,6 +2443,8 @@ class GameEngine {
     this._checkAltitudeZone();
     this.climbPulse = tier === 'perfect' ? 0.5 : 0.28;
     this.speed = speedForLevel(this.level);
+    this.lastLandTier = tier;
+    this.settleDur = settleDurFor(tier, this.combo);
     this.phase = 'settling';
     this.settleT = this.settleDur;
     this.landSquash = 0.58;
@@ -3969,7 +4005,7 @@ function onTap(e) {
       hapticPulse('drop');
       hapticArmLandPulse(engine);
       dismissTutorial();
-      setTimeout(() => { tapLock = false; }, 90);
+      setTimeout(() => { tapLock = false; }, isTouchInput() ? 52 : 85);
     }
   }
 }
@@ -4187,7 +4223,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=bee4790c').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=cdcc5426').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
