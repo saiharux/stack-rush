@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 262a4f89</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 3e27ccca</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '262a4f89';
+const ASSETS_VER = '3e27ccca';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1027,6 +1027,26 @@ function skyPaletteAt(meters) {
   }
   const last = ALTITUDE_ZONES[ALTITUDE_ZONES.length - 1];
   return { top: last.skyTop, mid: last.skyMid, bot: last.skyBot, sun: last.sun, t: 1 };
+}
+
+/** Night city sky — dark navy, slightly lighter horizon at street level only; darkens as you climb. */
+function nightSkyStops(meters, cosmic) {
+  const climb = Math.min(1, meters / 90);
+  const street = Math.max(0, 1 - meters / 40);
+  const zenith = lerpHex('#020408', '#010306', climb);
+  const upperMid = lerpHex('#070b14', '#04060c', climb * 0.65);
+  const lowerMid = lerpHex('#0a101c', '#060a10', climb * 0.55);
+  const baseHorizon = lerpHex('#0c1420', '#070a12', climb * 0.45);
+  const horizon = lerpHex(baseHorizon, '#141c28', street * 0.38);
+  if (cosmic < 0.12) return { zenith, upperMid, lowerMid, horizon };
+  const sky = skyPaletteAt(meters);
+  const c = Math.min(1, (cosmic - 0.12) / 0.88);
+  return {
+    zenith: lerpHex(zenith, sky.top, c),
+    upperMid: lerpHex(upperMid, sky.mid, c * 0.85),
+    lowerMid: lerpHex(lowerMid, sky.mid, c * 0.7),
+    horizon: lerpHex(horizon, sky.bot, c * 0.55),
+  };
 }
 
 function altitudeBarPct(meters) {
@@ -2742,21 +2762,10 @@ class GameEngine {
       ctx.globalAlpha = 1;
     }
     const zb = altitudeZoneBlend(this.altitudeMeters);
-    if (zb.idx >= 2) {
-      const fog = (zb.idx - 1) * 0.08 + zb.t * 0.08;
-      const fg = ctx.createLinearGradient(0, 0, 0, this.h);
-      fg.addColorStop(0, `rgba(255,255,255,${fog * 0.22})`);
-      fg.addColorStop(0.45, `rgba(200,230,255,${fog * 0.1})`);
-      fg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = fg;
-      ctx.globalAlpha = Math.min(0.35, fog);
-      ctx.fillRect(0, 0, this.w, this.h);
-      ctx.globalAlpha = 1;
-    }
-    if (zb.idx >= 4) {
+    if (this.cosmicBlend > 0.65 && zb.idx >= 5) {
       const tint = zb.zone.color;
       ctx.fillStyle = tint;
-      ctx.globalAlpha = 0.04 + zb.t * 0.05 + this.cosmicBlend * 0.06;
+      ctx.globalAlpha = 0.03 + zb.t * 0.03;
       ctx.fillRect(0, 0, this.w, this.h);
       ctx.globalAlpha = 1;
     }
@@ -2841,7 +2850,7 @@ class GameEngine {
   }
 
   _drawCloudLayers(ctx, rise, alt, cosmic, t) {
-    if (alt < 0.05 || cosmic > 0.88 || this.altitudeMeters < 55) return;
+    if (alt < 0.55 || cosmic > 0.88 || this.altitudeMeters < 100) return;
     const rng = s => { s = Math.sin(s) * 1e4; return s - Math.floor(s); };
     const fade = Math.min(1.35, alt * 1.35) * (1 - cosmic * 0.85);
     const skylineCeil = this._skylineFootScreenY() - this.h * 0.32;
@@ -2898,18 +2907,15 @@ class GameEngine {
   }
 
   _drawHorizonGlow(ctx, gY, alt, cosmic) {
-    if (cosmic > 0.6) return;
-    const night = Math.max(0, 1 - this.altitudeMeters / 90);
-    const glow = ctx.createLinearGradient(0, gY - 60, 0, gY + 16);
-    const cityA = night > 0.35 ? '#584838' : lerpHex('#a06848', '#ff9050', 0.4);
-    const cityB = night > 0.35 ? '#404878' : lerpHex('#7060a8', '#b388ff', 0.35);
+    if (cosmic > 0.35 || this.altitudeMeters > 25) return;
+    const glow = ctx.createLinearGradient(0, gY - 50, 0, gY + 12);
     glow.addColorStop(0, 'rgba(0,0,0,0)');
-    glow.addColorStop(0.7, cityB + (night > 0.3 ? '0a' : '12'));
-    glow.addColorStop(0.9, cityA + (night > 0.3 ? '0c' : '16'));
+    glow.addColorStop(0.75, '#3830500a');
+    glow.addColorStop(0.92, '#4838280c');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = (1 - cosmic) * (0.14 + alt * 0.05 + night * 0.04);
+    ctx.globalAlpha = 0.1 * (1 - this.altitudeMeters / 25);
     ctx.fillStyle = glow;
-    ctx.fillRect(0, gY - 70, this.w, 90);
+    ctx.fillRect(0, gY - 55, this.w, 70);
     ctx.globalAlpha = 1;
   }
 
@@ -3058,43 +3064,21 @@ class GameEngine {
     const alt = this.altitudeBlend;
     const cosmic = this.cosmicBlend;
     const rise = this.skyScroll;
-    const zb = altitudeZoneBlend(this.altitudeMeters);
-    const sky = skyPaletteAt(this.altitudeMeters);
-    const zoneMix = Math.min(0.32, zb.idx * 0.05 + zb.t * 0.05);
     const night = Math.max(0, 1 - this.altitudeMeters / 110);
-
-    const top = lerpHex(sky.top, zb.zone.skyTop, zoneMix);
-    const mid = lerpHex(sky.mid, zb.zone.skyMid, zoneMix);
-    const bot = lerpHex(sky.bot, zb.zone.skyBot, zoneMix);
-
-    const climbShade = Math.min(1, this.altitudeMeters / 150);
-    const zenith = lerpHex(top, '#010204', Math.max(cosmic * 0.92, night * 0.5 + climbShade * 0.14));
-    const upperMid = lerpHex(mid, '#060a14', Math.max(cosmic * 0.55, night * 0.32 + climbShade * 0.1));
-    const lowerMid = lerpHex(mid, lerpHex('#0a1020', '#121a28', night * 0.45), Math.max(cosmic * 0.32, night * 0.18 + climbShade * 0.08));
-    const horizonLift = lerpHex(bot, '#2a4068', night * 0.48);
-    const horizon = lerpHex(lowerMid, horizonLift, 0.4 + night * 0.1);
+    const stops = nightSkyStops(this.altitudeMeters, cosmic);
     const g = ctx.createLinearGradient(0, 0, 0, this.h);
-    g.addColorStop(0, zenith);
-    g.addColorStop(0.32, upperMid);
-    g.addColorStop(0.68, lowerMid);
-    g.addColorStop(1, horizon);
+    g.addColorStop(0, stops.zenith);
+    g.addColorStop(0.32, stops.upperMid);
+    g.addColorStop(0.68, stops.lowerMid);
+    g.addColorStop(1, stops.horizon);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
-
-    if (night > 0.08) {
-      const vibe = ctx.createRadialGradient(this.w * 0.5, this.h * 0.18, 0, this.w * 0.5, this.h * 0.22, this.w * 0.72);
-      vibe.addColorStop(0, '#10142814');
-      vibe.addColorStop(0.55, '#080c1806');
-      vibe.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = vibe;
-      ctx.fillRect(0, 0, this.w, this.h * 0.5);
-    }
 
     this._drawMotes(ctx, rise, alt, cosmic, t);
     this._drawCloudLayers(ctx, rise, alt, cosmic, t);
     this._drawHorizonGlow(ctx, this.worldToScreenY(this.groundY), alt, cosmic);
 
-    const starBright = Math.max(cosmic * 0.75 + alt * 0.12, night * 0.9);
+    const starBright = Math.max(cosmic * 0.75, night * 0.85);
     if (starBright > 0.04) {
       this.stars.forEach(s => {
         const px = s.x * this.w;
@@ -3111,14 +3095,15 @@ class GameEngine {
     this._drawBirds(ctx, rise, alt, cosmic, t);
     this._drawCitySkyline(ctx, t);
 
-    if (cosmic > 0.35) {
+    if (cosmic > 0.55) {
+      const sky = skyPaletteAt(this.altitudeMeters);
       const pr = this.w * 1.1;
       const cy = this.h + pr * 0.82;
       const pg = ctx.createRadialGradient(this.w * 0.5, cy, pr * 0.02, this.w * 0.5, cy, pr);
-      pg.addColorStop(0, lerpHex(mid, '#284878', 0.4));
-      pg.addColorStop(0.35, lerpHex(bot, '#142040', 0.5) + 'bb');
+      pg.addColorStop(0, lerpHex(sky.mid, '#284878', 0.4));
+      pg.addColorStop(0.35, lerpHex(sky.bot, '#142040', 0.5) + 'bb');
       pg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = cosmic * 0.85;
+      ctx.globalAlpha = (cosmic - 0.55) * 1.9;
       ctx.fillStyle = pg;
       ctx.beginPath(); ctx.arc(this.w * 0.5, cy, pr, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
@@ -4142,7 +4127,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=262a4f89').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=3e27ccca').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
