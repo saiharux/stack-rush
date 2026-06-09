@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build e01dcd45</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build c994ebea</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'e01dcd45';
+const ASSETS_VER = 'c994ebea';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -975,8 +975,8 @@ const MIN_W_RATIO = 0.1;
 const METERS_PER_FLOOR = 3;
 
 const ALTITUDE_ZONES = [
-  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#020408', skyMid: '#0a1020', skyBot: '#141c2e', sun: '#000000' },
-  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#03050c', skyMid: '#0c121c', skyBot: '#161e30', sun: '#000000' },
+  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#020408', skyMid: '#0a1020', skyBot: '#0e1628', sun: '#000000' },
+  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#03050c', skyMid: '#0c121c', skyBot: '#101a2c', sun: '#000000' },
   { m: 45,  name: 'Cloud Layer',    color: '#a8c8f0', skyTop: '#101828', skyMid: '#1a2840', skyBot: '#1e3048', sun: '#000000' },
   { m: 90,  name: 'High Altitude',  color: '#b388ff', skyTop: '#5a78c8', skyMid: '#7888d8', skyBot: '#3a4888', sun: '#ffd8a8' },
   { m: 150, name: 'Stratosphere',   color: '#7c4dff', skyTop: '#283878', skyMid: '#4050a0', skyBot: '#182050', sun: '#ffb878' },
@@ -2900,16 +2900,16 @@ class GameEngine {
   _drawHorizonGlow(ctx, gY, alt, cosmic) {
     if (cosmic > 0.6) return;
     const night = Math.max(0, 1 - this.altitudeMeters / 90);
-    const glow = ctx.createLinearGradient(0, gY - 100, 0, gY + 30);
+    const glow = ctx.createLinearGradient(0, gY - 60, 0, gY + 16);
     const cityA = lerpHex(this.palette[0].main, '#ff9050', 0.45);
     const cityB = lerpHex(this.palette[2].main, '#b388ff', 0.35);
     glow.addColorStop(0, 'rgba(0,0,0,0)');
-    glow.addColorStop(0.62, cityB + (night > 0.3 ? '14' : '1a'));
-    glow.addColorStop(0.82, cityA + (night > 0.3 ? '18' : '28'));
-    glow.addColorStop(1, cityA + '10');
-    ctx.globalAlpha = (1 - cosmic) * (0.28 + alt * 0.12 + night * 0.1);
+    glow.addColorStop(0.7, cityB + (night > 0.3 ? '0c' : '14'));
+    glow.addColorStop(0.9, cityA + (night > 0.3 ? '10' : '1a'));
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = (1 - cosmic) * (0.18 + alt * 0.1 + night * 0.05);
     ctx.fillStyle = glow;
-    ctx.fillRect(0, gY - 120, this.w, 160);
+    ctx.fillRect(0, gY - 70, this.w, 90);
     ctx.globalAlpha = 1;
   }
 
@@ -2958,25 +2958,19 @@ class GameEngine {
     ctx.scale(1, -1);
     ctx.drawImage(img, drawX, topY, tileW, tileH);
     ctx.restore();
-    const fade = ctx.createLinearGradient(0, footY + 2, 0, footY + reflH + 2);
-    fade.addColorStop(0, 'rgba(0,0,0,0)');
-    fade.addColorStop(0.55, 'rgba(0,0,0,0)');
-    fade.addColorStop(1, `rgba(8,12,24,${alpha * 0.45})`);
-    ctx.fillStyle = fade;
-    ctx.fillRect(0, footY + 2, this.w, reflH);
   }
 
   _drawSkylineShoreLine(ctx, footY, accent, alpha) {
     if (alpha <= 0.05) return;
     const line = lerpHex(accent, '#d8e8ff', 0.42);
     ctx.save();
-    ctx.globalAlpha = alpha * 0.75;
-    const g = ctx.createLinearGradient(0, footY - 2, 0, footY + 5);
+    const g = ctx.createLinearGradient(0, footY - 2, 0, footY + 3);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.5, line + '77');
-    g.addColorStop(1, accent + '22');
+    g.addColorStop(0.6, line + '44');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = alpha * 0.55;
     ctx.fillStyle = g;
-    ctx.fillRect(0, footY - 1, this.w, 6);
+    ctx.fillRect(0, footY - 1, this.w, 4);
     ctx.globalAlpha = Math.min(1, alpha * 0.9);
     ctx.fillStyle = line + 'cc';
     ctx.fillRect(0, footY, this.w, 1);
@@ -3043,12 +3037,11 @@ class GameEngine {
     const zenith = lerpHex(top, '#010204', Math.max(cosmic * 0.92, night * 0.62 + climbShade * 0.22));
     const upperMid = lerpHex(mid, '#060a14', Math.max(cosmic * 0.55, night * 0.38 + climbShade * 0.15));
     const lowerMid = lerpHex(mid, '#0a1020', Math.max(cosmic * 0.32, night * 0.22 + climbShade * 0.1));
-    const horizon = lerpHex(bot, '#161e30', Math.max(0.08, night * 0.18 - climbShade * 0.06));
+    const horizon = lerpHex(lowerMid, lerpHex(bot, accent, 0.1), 0.38 + night * 0.08);
     const g = ctx.createLinearGradient(0, 0, 0, this.h);
     g.addColorStop(0, zenith);
-    g.addColorStop(0.24, upperMid);
-    g.addColorStop(0.52, lowerMid);
-    g.addColorStop(0.8, lerpHex(bot, '#101828', night * 0.14 + climbShade * 0.08));
+    g.addColorStop(0.32, upperMid);
+    g.addColorStop(0.68, lowerMid);
     g.addColorStop(1, horizon);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
@@ -4114,7 +4107,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=e01dcd45').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=c994ebea').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
