@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="description" content="Stack Rush — slide, drop, and climb. Modes, bosses, weekly challenges, and career progression." />
-  <meta name="theme-color" content="#030303" />
+  <meta name="theme-color" content="#07090d" />
   <meta property="og:title" content="Stack Rush" />
   <meta property="og:description" content="Neon stacker with Blitz, Precision, bosses, and weekly challenges." />
   <meta property="og:type" content="website" />
@@ -19,7 +19,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%; overflow: hidden;
-      background: #030303;
+      background: #07090d;
       font-family: "Segoe UI", system-ui, sans-serif;
       touch-action: manipulation;
       user-select: none;
@@ -27,7 +27,7 @@
     #wrap {
       position: relative; width: 100vw; height: 100vh;
       max-width: 520px; margin: 0 auto;
-      background: #030303;
+      background: #07090d;
       box-shadow: none;
     }
     #game { display: block; width: 100%; height: 100%; position: relative; touch-action: none; }
@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build a191a0e2</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 0c672921</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'a191a0e2';
+const ASSETS_VER = '0c672921';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2609,14 +2609,16 @@ class GameEngine {
       const belowH = Math.max(0, this.h - gY);
       const sg = ctx.createLinearGradient(0, gY, 0, this.h);
       sg.addColorStop(0, 'rgba(0,0,0,0)');
-      sg.addColorStop(0.22, 'rgba(4,4,5,.55)');
-      sg.addColorStop(1, '#030303');
+      sg.addColorStop(0.38, 'rgba(8,10,14,0.65)');
+      sg.addColorStop(1, '#07090d');
       ctx.fillStyle = sg;
       ctx.fillRect(0, gY + 1, this.w, belowH);
       const pw = Math.min(this.w * 0.72, this.stack[0].width * this.viewZoom + 60);
       const px = this.w / 2 - pw / 2;
-      ctx.fillStyle = 'rgba(18,22,30,.55)';
-      ctx.fillRect(px, gY, pw, 2);
+      ctx.fillStyle = 'rgba(100,120,150,0.12)';
+      ctx.fillRect(px, gY, pw, 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(px, gY - 1, pw, 1);
     }
 
     this.stack.forEach((b, i) => {
@@ -4151,7 +4153,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=a191a0e2').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=0c672921').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
