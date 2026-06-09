@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 1b3e20fe</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 43f00d6a</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '1b3e20fe';
+const ASSETS_VER = '43f00d6a';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1037,7 +1037,7 @@ function nightSkyStops(meters, cosmic) {
   const nightUpper = lerpHex('#070b14', '#04060c', climb * 0.65);
   const nightLower = lerpHex('#0a101c', '#060a10', climb * 0.55);
   const nightBaseHorizon = lerpHex('#0c1420', '#070a12', climb * 0.45);
-  const nightHorizon = lerpHex(nightBaseHorizon, '#141c28', street * 0.38);
+  const nightHorizon = nightBaseHorizon;
 
   const spaceT = Math.min(1, Math.max(cosmic * 0.92, Math.max(0, (meters - 70) / 110)));
   if (spaceT <= 0.02) {
@@ -2607,21 +2607,15 @@ class GameEngine {
     const gY = this.worldToScreenY(this.groundY);
     if (gY < this.h + 30) {
       const sg = ctx.createLinearGradient(0, gY + 20, 0, this.h);
-      sg.addColorStop(0, 'rgba(8,6,24,0)');
-      sg.addColorStop(0.3, 'rgba(12,10,32,.85)');
-      sg.addColorStop(1, 'rgba(6,4,18,.98)');
+      sg.addColorStop(0, 'rgba(0,0,0,0)');
+      sg.addColorStop(0.35, 'rgba(4,6,10,.72)');
+      sg.addColorStop(1, 'rgba(2,3,6,.96)');
       ctx.fillStyle = sg;
       ctx.fillRect(0, gY + 8, this.w, Math.max(0, this.h - gY));
       const pw = Math.min(this.w * 0.72, this.stack[0].width * this.viewZoom + 60);
       const px = this.w / 2 - pw / 2;
-      const platGrad = ctx.createLinearGradient(px, gY, px + pw, gY);
-      platGrad.addColorStop(0, 'rgba(0,180,220,.15)');
-      platGrad.addColorStop(0.5, 'rgba(0,229,255,.45)');
-      platGrad.addColorStop(1, 'rgba(124,77,255,.15)');
-      ctx.fillStyle = platGrad;
-      ctx.fillRect(px, gY, pw, 6);
-      ctx.fillStyle = 'rgba(0,229,255,.2)';
-      ctx.fillRect(px, gY + 6, pw, 2);
+      ctx.fillStyle = 'rgba(18,22,30,.55)';
+      ctx.fillRect(px, gY, pw, 2);
     }
 
     this.stack.forEach((b, i) => {
@@ -2929,31 +2923,19 @@ class GameEngine {
   }
 
   _drawSkylineDockGlow(ctx, footY, accent, alpha) {
-    if (alpha <= 0.05) return;
-    const warm = lerpHex(accent, '#ffb060', 0.42);
-    const amber = lerpHex('#c87840', '#ff9858', 0.32);
-    const waterH = 38;
+    if (alpha <= 0.05 || this.altitudeMeters > 18) return;
+    const waterH = 28;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, footY + 1, this.w, waterH);
     ctx.clip();
     const pool = ctx.createLinearGradient(0, footY + 1, 0, footY + waterH);
-    pool.addColorStop(0, warm + '20');
-    pool.addColorStop(0.22, amber + '16');
-    pool.addColorStop(0.55, amber + '08');
+    pool.addColorStop(0, 'rgba(16,20,28,0.12)');
+    pool.addColorStop(0.45, 'rgba(12,16,24,0.08)');
     pool.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = alpha * 0.5;
+    ctx.globalAlpha = alpha * 0.4;
     ctx.fillStyle = pool;
     ctx.fillRect(0, footY + 1, this.w, waterH);
-    const shimmer = ctx.createLinearGradient(0, footY + 1, this.w, footY + 1);
-    shimmer.addColorStop(0, 'rgba(0,0,0,0)');
-    shimmer.addColorStop(0.22, warm + '33');
-    shimmer.addColorStop(0.5, '#ffd09044');
-    shimmer.addColorStop(0.78, warm + '28');
-    shimmer.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = alpha * 0.45;
-    ctx.fillStyle = shimmer;
-    ctx.fillRect(0, footY + 1, this.w, 2);
     ctx.restore();
   }
 
@@ -2983,19 +2965,17 @@ class GameEngine {
   }
 
   _drawSkylineSkyWash(ctx, footY, alpha, night) {
-    if (alpha <= 0.05 || night < 0.12) return;
-    const bandH = this.h * 0.34;
+    if (alpha <= 0.05 || night < 0.12 || this.altitudeMeters > 12) return;
+    const bandH = this.h * 0.28;
     const bandTop = footY - bandH;
-    const wash = ctx.createLinearGradient(0, bandTop, 0, footY + 10);
+    const wash = ctx.createLinearGradient(0, bandTop, 0, footY + 6);
     wash.addColorStop(0, 'rgba(0,0,0,0)');
-    wash.addColorStop(0.22, '#2a427014');
-    wash.addColorStop(0.5, '#38588830');
-    wash.addColorStop(0.78, '#2a427022');
+    wash.addColorStop(0.5, 'rgba(14,18,26,0.14)');
     wash.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.save();
-    ctx.globalAlpha = alpha * night * 0.9;
+    ctx.globalAlpha = alpha * night * 0.65;
     ctx.fillStyle = wash;
-    ctx.fillRect(0, bandTop, this.w, bandH + 12);
+    ctx.fillRect(0, bandTop, this.w, bandH + 8);
     ctx.restore();
   }
 
@@ -3021,15 +3001,10 @@ class GameEngine {
 
   _drawSkylineShoreLine(ctx, footY, accent, alpha) {
     if (alpha <= 0.05) return;
-    const edge = lerpHex(accent, '#d8e8ff', 0.38);
-    const warm = lerpHex(accent, '#ffc880', 0.35);
     ctx.save();
-    ctx.globalAlpha = Math.min(1, alpha * 0.75);
-    ctx.fillStyle = edge + '99';
+    ctx.globalAlpha = Math.min(1, alpha * 0.45);
+    ctx.fillStyle = 'rgba(32,38,50,0.5)';
     ctx.fillRect(0, footY, this.w, 1);
-    ctx.globalAlpha = alpha * 0.4;
-    ctx.fillStyle = warm + '66';
-    ctx.fillRect(0, footY + 1, this.w, 1);
     ctx.restore();
   }
 
@@ -4175,7 +4150,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=1b3e20fe').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=43f00d6a').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
