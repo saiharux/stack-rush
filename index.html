@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 209d64df</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build b856c398</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '209d64df';
+const ASSETS_VER = 'b856c398';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2634,8 +2634,7 @@ class GameEngine {
     }
 
     if (!this.over && this.active && this.phase !== 'settling') {
-      let at = this.phase === 'dropping' ? this.worldToScreenY(this.activeWorldY) : this.activeScreenY;
-      if (this.phase === 'moving') at += Math.sin(time * 5.5) * 2.5;
+      const at = this.phase === 'dropping' ? this.worldToScreenY(this.activeWorldY) : this.activeScreenY;
       const ax = this.worldToScreenX(this.active.left);
       const aw = this.worldToScreenW(this.active.width);
       const ah = this.blockScreenH();
@@ -3117,12 +3116,12 @@ function drawBlockInnerGlow(ctx, x, dy, w, dh, r, pal, opts) {
   ctx.save();
   rr(ctx, x, dy, w, dh, r);
   ctx.clip();
-  const pulse = 0.5 + Math.sin(time * (active ? 7 : 6)) * 0.3;
+  const pulse = active ? 1 : 0.72 + Math.sin(time * 4) * 0.12;
   const hot = combo >= 3;
   let base = pal.main;
   if (special) base = special.color;
   else if (hot) base = lerpHex(pal.main, '#ff6b9d', 0.35);
-  const strength = active ? 0.9 + combo * 0.07 : special ? 0.95 : innerGlow;
+  const strength = active ? 0.82 + combo * 0.05 : special ? 0.95 : innerGlow;
   const cx = x + w * 0.5;
   const cy = dy + dh * 0.4;
   const rad = Math.max(w, dh) * 0.88;
@@ -3143,11 +3142,13 @@ function drawBlockInnerGlow(ctx, x, dy, w, dh, r, pal, opts) {
     rr(ctx, x, dy, w, dh, r);
     ctx.fill();
   }
-  const lw = Math.max(1, Math.min(2.5, w * 0.035));
-  ctx.strokeStyle = hexToRgba(pal.edge, 0.24 * strength * pulse);
-  ctx.lineWidth = lw;
-  rr(ctx, x + lw * 0.5, dy + lw * 0.5, w - lw, dh - lw, Math.max(1, r - 1));
-  ctx.stroke();
+  if (!active) {
+    const lw = Math.max(1, Math.min(2.5, w * 0.035));
+    ctx.strokeStyle = hexToRgba(pal.edge, 0.2 * strength * pulse);
+    ctx.lineWidth = lw;
+    rr(ctx, x + lw * 0.5, dy + lw * 0.5, w - lw, dh - lw, Math.max(1, r - 1));
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -4140,7 +4141,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=209d64df').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=b856c398').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
