@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build c994ebea</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 518e3e03</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'c994ebea';
+const ASSETS_VER = '518e3e03';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2960,6 +2960,24 @@ class GameEngine {
     ctx.restore();
   }
 
+  _drawSkylineImage(ctx, img, drawX, topY, tileW, tileH, alpha, vivid) {
+    ctx.save();
+    ctx.globalAlpha = vivid ? Math.min(1, alpha * 1.08) : alpha;
+    if (vivid) {
+      ctx.filter = 'saturate(1.25) brightness(1.08)';
+    } else {
+      ctx.filter = [
+        'drop-shadow(0 0 1px rgba(0,0,0,0.92))',
+        'drop-shadow(0 2px 10px rgba(0,0,0,0.36))',
+        'brightness(1.07)',
+        'contrast(1.11)',
+        'saturate(1.08)',
+      ].join(' ');
+    }
+    ctx.drawImage(img, drawX, topY, tileW, tileH);
+    ctx.restore();
+  }
+
   _drawSkylineShoreLine(ctx, footY, accent, alpha) {
     if (alpha <= 0.05) return;
     const line = lerpHex(accent, '#d8e8ff', 0.42);
@@ -2997,11 +3015,7 @@ class GameEngine {
       const focus = getCity(this.cityId).skylineFocus ?? 0.5;
       const drawX = Math.min(0, Math.max(this.w - tileW, this.w * 0.5 - focus * img.width * scale));
 
-      ctx.save();
-      ctx.globalAlpha = vivid ? Math.min(1, cityAlpha * 1.08) : cityAlpha;
-      if (vivid) ctx.filter = 'saturate(1.25) brightness(1.08)';
-      ctx.drawImage(img, drawX, topY, tileW, tileH);
-      ctx.restore();
+      this._drawSkylineImage(ctx, img, drawX, topY, tileW, tileH, cityAlpha, vivid);
       this._drawSkylineWaterReflection(ctx, img, drawX, topY, tileW, tileH, skylineFootY, cityAlpha);
       this._drawSkylineShoreLine(ctx, skylineFootY, accent, cityAlpha);
       return;
@@ -4107,7 +4121,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=c994ebea').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=518e3e03').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
