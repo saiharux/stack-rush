@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build b856c398</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 1b3e20fe</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'b856c398';
+const ASSETS_VER = '1b3e20fe';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -1711,8 +1711,9 @@ class GameEngine {
     this.bgStops = getThemeBg(themeId);
     this.bgStopsHigh = getThemeBgHigh(themeId);
     this.groundY = h * 0.84;
-    this.activeScreenY = h * 0.17;
-    this.towerAnchorY = h * 0.33;
+    this.activeScreenY = Math.round(h * 0.17);
+    this.towerAnchorY = Math.round(h * 0.33);
+    this.activeDrawZoom = 1;
     this.reset();
   }
 
@@ -1722,8 +1723,8 @@ class GameEngine {
   resize(w, h) {
     this.w = w; this.h = h;
     this.groundY = h * 0.84;
-    this.activeScreenY = h * 0.17;
-    this.towerAnchorY = h * 0.33;
+    this.activeScreenY = Math.round(h * 0.17);
+    this.towerAnchorY = Math.round(h * 0.33);
     this._snapCamera();
   }
 
@@ -1749,6 +1750,7 @@ class GameEngine {
     this.displayScore = 0;
     this.stats = { perfect: 0, great: 0, good: 0, bestCombo: 0 };
     this.spawn();
+    this._lockActiveDrawMetrics();
     this.velY = 0;
     this.stars = this._genStars(90);
     this.cloudLayers = this._genCloudLayers(6);
@@ -2096,6 +2098,7 @@ class GameEngine {
         this.landSquash = 1;
         this.phase = 'moving';
         this.spawn();
+        this._lockActiveDrawMetrics();
         this.moveT = this._rnd() * Math.PI * 2;
         this._flushPerkOffer();
       }
@@ -2277,6 +2280,32 @@ class GameEngine {
       savedBoss,
     });
     this.moveT = this._rnd() * Math.PI * 2;
+    this._lockActiveDrawMetrics();
+  }
+
+  _lockActiveDrawMetrics() {
+    this.activeDrawZoom = this.viewZoom;
+  }
+
+  _snapHalfPx(v) {
+    return Math.round(v * 2) / 2;
+  }
+
+  _activeBlockScreenRect() {
+    const z = this.activeDrawZoom ?? this.viewZoom;
+    const ah = BLOCK_H * z;
+    const aw = this.active.width * z;
+    const ax = (this.active.left - this.w * 0.5) * z + this.w * 0.5;
+    const w = this._snapHalfPx(aw);
+    const h = this._snapHalfPx(ah);
+    const d = Math.round(Math.max(4, Math.min(w * 0.1, h * 0.38, BLOCK_D * z * 1.2)));
+    return {
+      x: this._snapHalfPx(ax),
+      y: this._snapHalfPx(this.activeScreenY),
+      w,
+      h,
+      d,
+    };
   }
 
   _land(targetTop) {
@@ -2634,11 +2663,16 @@ class GameEngine {
     }
 
     if (!this.over && this.active && this.phase !== 'settling') {
-      const at = this.phase === 'dropping' ? this.worldToScreenY(this.activeWorldY) : this.activeScreenY;
-      const ax = this.worldToScreenX(this.active.left);
-      const aw = this.worldToScreenW(this.active.width);
-      const ah = this.blockScreenH();
-      const ad = Math.max(4, Math.min(aw * 0.1, ah * 0.38, BLOCK_D * this.viewZoom * 1.2));
+      let ax, at, aw, ah, ad;
+      if (this.phase === 'moving') {
+        ({ x: ax, y: at, w: aw, h: ah, d: ad } = this._activeBlockScreenRect());
+      } else {
+        at = this._snapHalfPx(this.worldToScreenY(this.activeWorldY));
+        ax = this._snapHalfPx(this.worldToScreenX(this.active.left));
+        aw = this._snapHalfPx(this.worldToScreenW(this.active.width));
+        ah = this._snapHalfPx(this.blockScreenH());
+        ad = Math.round(Math.max(4, Math.min(aw * 0.1, ah * 0.38, BLOCK_D * this.viewZoom * 1.2)));
+      }
       if (this.bossFloor?.id === 'blink' && this.phase === 'moving') {
         ctx.globalAlpha = 0.22 + Math.abs(Math.sin(time * 11)) * 0.78;
       }
@@ -3163,7 +3197,7 @@ function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
   const dy = y + sh / 2;
   const dh = h * squash;
   const r = Math.min(7, w * 0.08, dh * 0.2);
-  const d = ghost ? 0 : Math.max(0, Math.min(depth, dh * 0.42, w * 0.12));
+  const d = ghost ? 0 : Math.round(Math.max(0, Math.min(depth, dh * 0.42, w * 0.12)));
 
   if (!ghost && d > 0) {
     const side = ctx.createLinearGradient(x + w, dy, x + w + d, dy);
@@ -4141,7 +4175,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=b856c398').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=1b3e20fe').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
