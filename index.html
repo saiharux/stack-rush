@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build ec843a70</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 209d64df</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = 'ec843a70';
+const ASSETS_VER = '209d64df';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -2258,10 +2258,8 @@ class GameEngine {
       priority: 'milestone',
     });
     this.shake = 18;
-    this.flash = 0.42;
-    this.flashColor = '#69f0ae';
-    this.screenPulse = 0.32;
-    this.screenPulseColor = '#69f0ae';
+    this.flash = 0;
+    this.screenPulse = 0;
     this.audio?.playSlice();
     gamePulse('edge');
 
@@ -2365,24 +2363,16 @@ class GameEngine {
 
     if (tier !== 'none') {
       const st = TIER_STYLE[tier];
-      this.flash = st.flash; this.flashColor = st.color;
+      this.flash = 0;
       this.shake = st.shake;
       if (tier === 'perfect') {
         this.audio?.playPerfect();
         hapticPulse(this.combo >= 5 ? 'combo' : 'perfect', { vibrate: false });
-        this.screenPulse = 0.42;
-        this.screenPulseColor = st.color;
+        this.screenPulse = 0;
         this.comboGlow = Math.min(1, 0.35 + this.combo * 0.12);
       }
       else if (tier === 'great') { this.audio?.playGreat(); hapticPulse('great', { vibrate: false }); }
       else { this.audio?.playGood(); hapticPulse('good', { vibrate: false }); }
-      const ringCount = st.rings || 0;
-      for (let ri = 0; ri < ringCount; ri++) {
-        this.perfectRings.push({
-          x: cx, y: landY, r: 8 + ri * 6, life: 0.55 - ri * 0.08, max: 0.55,
-          color: st.color, speed: 300 + ri * 40, width: tier === 'perfect' ? 3 : 2,
-        });
-      }
       for (let i = 0; i < st.particles; i++) {
         const ang = Math.random() * Math.PI * 2;
         const spd = 90 + Math.random() * (tier === 'perfect' ? 380 : 200);
@@ -2410,7 +2400,6 @@ class GameEngine {
     }
 
     const palMain = this.palette[a.color % this.palette.length].main;
-    this.ripples.push({ x: cx, y: landY, r: 6, life: 0.45, max: 0.45, color: palMain, bright: true });
     for (let i = 0; i < 8; i++) {
       const ang = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
       const spd = 60 + Math.random() * 120;
@@ -2426,15 +2415,14 @@ class GameEngine {
     this.stack.push({ left: landL, width: landW, top: targetTop, color: a.color, squash: 1 });
     this.level = this.stack.length;
     if (this.level % 5 === 0) {
-      this.milestoneFlash = 0.7;
-      this.screenPulse = Math.max(this.screenPulse, 0.28);
-      this.screenPulseColor = '#ffd54f';
+      this.milestoneFlash = 0;
+      this.screenPulse = 0;
       this.texts.push({
         text: `FLOOR ${this.level}`,
         x: this.w / 2, y: this.h * 0.22, life: 1.05, max: 1.05, sc: 1,
         color: '#ffd54f', banner: true,
       });
-      this.ripples.push({ x: cx, y: landY, r: 10, life: 0.65, max: 0.65, color: '#ffd54f', bright: true });
+
       this.audio?.playMilestone();
       hapticPulse('milestone');
     }
@@ -2615,48 +2603,9 @@ class GameEngine {
       const sq = (i === this.stack.length - 1 && this.settleT > 0) ? this.landSquash : b.squash;
       const isTop = i === this.stack.length - 1;
       this._drawWorldBlock(ctx, b.left, b.top, b.width, b.color, {
-        squash: sq, isStacked: true, isTop, zoneGlow: this.zoneGlow,
+        squash: sq, isStacked: true, isTop, innerGlow: isTop ? 0.22 : 0,
       }, time);
     });
-
-    this.perfectRings.forEach(r => {
-      const a = r.life / r.max;
-      const rx = this.worldToScreenX(r.x);
-      const ry = this.worldToScreenY(r.y);
-      const rad = r.r * this.viewZoom;
-      ctx.globalAlpha = a * 0.75;
-      ctx.strokeStyle = r.color;
-      ctx.lineWidth = (r.width || 2) * this.viewZoom;
-      ctx.shadowColor = r.color;
-      ctx.shadowBlur = 14 * a;
-      ctx.beginPath();
-      ctx.arc(rx, ry, rad, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    });
-
-    this.ripples.forEach(r => {
-      const a = (r.life / r.max);
-      ctx.globalAlpha = a * (r.bright ? 0.55 : 0.35);
-      const rx = this.worldToScreenX(r.x);
-      const ry = this.worldToScreenY(r.y);
-      const rad = r.r * this.viewZoom;
-      if (r.bright) {
-        const rg = ctx.createRadialGradient(rx, ry, rad * 0.7, rx, ry, rad);
-        rg.addColorStop(0, r.color + '00');
-        rg.addColorStop(0.85, r.color);
-        rg.addColorStop(1, '#ffffff');
-        ctx.strokeStyle = rg;
-        ctx.lineWidth = 2;
-      } else {
-        ctx.strokeStyle = r.color;
-        ctx.lineWidth = 2.5;
-      }
-      ctx.beginPath();
-      ctx.arc(rx, ry, rad, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-    ctx.globalAlpha = 1;
 
     this.falling.forEach(s => {
       ctx.save();
@@ -2674,12 +2623,9 @@ class GameEngine {
     this.trailPts.forEach(p => {
       ctx.globalAlpha = (p.life / p.max) * 0.75;
       ctx.fillStyle = this.trail.color;
-      ctx.shadowColor = this.trail.color;
-      ctx.shadowBlur = 8;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
     });
     ctx.globalAlpha = 1;
 
@@ -2698,8 +2644,7 @@ class GameEngine {
         ctx.globalAlpha = 0.22 + Math.abs(Math.sin(time * 11)) * 0.78;
       }
       drawBlock3D(ctx, ax, at, aw, ah, this.active.color, {
-        glow: false,
-        combo: 0,
+        combo: Math.min(5, this.combo),
         palette: this.palette,
         depth: ad,
         time,
@@ -2717,15 +2662,12 @@ class GameEngine {
       const sz = p.size * this.viewZoom;
       ctx.fillStyle = p.color;
       if (p.spark) {
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 10 * a;
         ctx.save();
         ctx.translate(px, py);
         ctx.rotate((1 - a) * 4);
         ctx.fillRect(-sz, -sz * 0.35, sz * 2, sz * 0.7);
         ctx.fillRect(-sz * 0.35, -sz, sz * 0.7, sz * 2);
         ctx.restore();
-        ctx.shadowBlur = 0;
       } else {
         ctx.beginPath();
         ctx.arc(px, py, sz, 0, Math.PI * 2);
@@ -2756,24 +2698,6 @@ class GameEngine {
     });
     ctx.globalAlpha = 1;
 
-    if (this.screenPulse > 0) {
-      ctx.fillStyle = this.screenPulseColor;
-      ctx.globalAlpha = this.screenPulse * 0.07;
-      ctx.fillRect(0, 0, this.w, this.h);
-      ctx.globalAlpha = 1;
-    }
-    if (this.milestoneFlash > 0) {
-      ctx.fillStyle = '#ffd54f';
-      ctx.globalAlpha = this.milestoneFlash * 0.08;
-      ctx.fillRect(0, 0, this.w, this.h);
-      ctx.globalAlpha = 1;
-    }
-    if (this.flash > 0) {
-      ctx.fillStyle = this.flashColor;
-      ctx.globalAlpha = this.flash * 0.16;
-      ctx.fillRect(0, 0, this.w, this.h);
-      ctx.globalAlpha = 1;
-    }
     if (this.zoneFlash > 0) {
       ctx.fillStyle = this.zoneTint;
       ctx.globalAlpha = this.zoneFlash * 0.05;
@@ -3181,11 +3105,57 @@ let _timeOrigin = performance.now();
 function timeNow() { return (performance.now() - _timeOrigin) / 1000; }
 function easeOutBack(t) { const c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
 
+function hexToRgba(hex, a) {
+  const p = h => parseInt(h, 16);
+  const rv = p(hex.slice(1, 3)), gv = p(hex.slice(3, 5)), bv = p(hex.slice(5, 7));
+  return `rgba(${rv},${gv},${bv},${a})`;
+}
+
+function drawBlockInnerGlow(ctx, x, dy, w, dh, r, pal, opts) {
+  const { active = false, special = null, combo = 0, innerGlow = 0, time = 0 } = opts;
+  if (!(active || special || combo > 0 || innerGlow > 0)) return;
+  ctx.save();
+  rr(ctx, x, dy, w, dh, r);
+  ctx.clip();
+  const pulse = 0.5 + Math.sin(time * (active ? 7 : 6)) * 0.3;
+  const hot = combo >= 3;
+  let base = pal.main;
+  if (special) base = special.color;
+  else if (hot) base = lerpHex(pal.main, '#ff6b9d', 0.35);
+  const strength = active ? 0.9 + combo * 0.07 : special ? 0.95 : innerGlow;
+  const cx = x + w * 0.5;
+  const cy = dy + dh * 0.4;
+  const rad = Math.max(w, dh) * 0.88;
+  const ig = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+  const a0 = 0.2 * strength * pulse;
+  const a1 = 0.09 * strength * pulse;
+  ig.addColorStop(0, hexToRgba(lightenHex(base, 0.42), a0));
+  ig.addColorStop(0.4, hexToRgba(base, a1));
+  ig.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ig;
+  rr(ctx, x, dy, w, dh, r);
+  ctx.fill();
+  if (active || special) {
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, dh) * 0.38);
+    cg.addColorStop(0, hexToRgba(lightenHex(base, 0.5), 0.14 * pulse * strength));
+    cg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cg;
+    rr(ctx, x, dy, w, dh, r);
+    ctx.fill();
+  }
+  const lw = Math.max(1, Math.min(2.5, w * 0.035));
+  ctx.strokeStyle = hexToRgba(pal.edge, 0.24 * strength * pulse);
+  ctx.lineWidth = lw;
+  rr(ctx, x + lw * 0.5, dy + lw * 0.5, w - lw, dh - lw, Math.max(1, r - 1));
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
   const {
-    squash = 1, glow = false, ghost = false, combo = 0, active = false,
+    squash = 1, ghost = false, combo = 0, active = false,
     palette = getThemeColors('neon'), depth = BLOCK_D, time = 0, special = null,
-    isStacked = false, isTop = false, zoneGlow = 0,
+    isStacked = false, isTop = false, innerGlow = 0,
   } = opts;
   const pal = palette[ci % palette.length];
   const sh = h * (1 - squash);
@@ -3223,15 +3193,6 @@ function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
     ctx.globalAlpha = 1;
   }
 
-  if (special) {
-    const pulse = 0.7 + Math.sin(time * 8) * 0.3;
-    ctx.shadowColor = special.color;
-    ctx.shadowBlur = 22 * pulse;
-  } else if (glow && !active) {
-    ctx.shadowColor = pal.main;
-    ctx.shadowBlur = 8;
-  }
-
   if (ghost) {
     ctx.fillStyle = pal.main + '44';
   } else {
@@ -3243,7 +3204,7 @@ function drawBlock3D(ctx, x, y, w, h, ci, opts = {}) {
   }
   rr(ctx, x, dy, w, dh, r);
   ctx.fill();
-  ctx.shadowBlur = 0;
+  if (!ghost) drawBlockInnerGlow(ctx, x, dy, w, dh, r, pal, { active, special, combo, innerGlow, time });
 }
 
 function lightenHex(hex, amt) {
@@ -4179,7 +4140,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=ec843a70').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=209d64df').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
