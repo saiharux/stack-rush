@@ -619,7 +619,7 @@
       <div class="section-divider"></div>
       <p class="theme-label">City skyline <span id="cityUnlockHint"></span></p>
       <div class="theme-grid" id="cityGrid"></div>
-      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build 7b0c39fd</p>
+      <p class="theme-label" id="buildVer" style="margin-top:10px;opacity:.35;font-size:.62rem;text-align:center;">Build e01dcd45</p>
       <button class="secondary" id="optionsBackBtn" style="width:100%;margin-top:10px;">Back</button>
     </div>
   </div>
@@ -710,7 +710,7 @@ const MUSIC_TRACKS = [
 
 const SFX_FILES = ['drop', 'land', 'perfect', 'great', 'good', 'slice', 'gameover'];
 const ASSETS_BASE = 'assets/';
-const ASSETS_VER = '7b0c39fd';
+const ASSETS_VER = 'e01dcd45';
 const BOARD_KEY = 'stackrush_weekly_board';
 const PLAYER_NAME_KEY = 'stackrush_player_name';
 const BOARD_MAX = 15;
@@ -975,8 +975,8 @@ const MIN_W_RATIO = 0.1;
 const METERS_PER_FLOOR = 3;
 
 const ALTITUDE_ZONES = [
-  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#03050c', skyMid: '#060a14', skyBot: '#030508', sun: '#000000' },
-  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#050810', skyMid: '#080c18', skyBot: '#05080e', sun: '#000000' },
+  { m: 0,   name: 'Street Level',   color: '#8eb4ff', skyTop: '#020408', skyMid: '#0a1020', skyBot: '#141c2e', sun: '#000000' },
+  { m: 18,  name: 'Rooftops',       color: '#7ca8e8', skyTop: '#03050c', skyMid: '#0c121c', skyBot: '#161e30', sun: '#000000' },
   { m: 45,  name: 'Cloud Layer',    color: '#a8c8f0', skyTop: '#101828', skyMid: '#1a2840', skyBot: '#1e3048', sun: '#000000' },
   { m: 90,  name: 'High Altitude',  color: '#b388ff', skyTop: '#5a78c8', skyMid: '#7888d8', skyBot: '#3a4888', sun: '#ffd8a8' },
   { m: 150, name: 'Stratosphere',   color: '#7c4dff', skyTop: '#283878', skyMid: '#4050a0', skyBot: '#182050', sun: '#ffb878' },
@@ -3039,25 +3039,27 @@ class GameEngine {
     const mid = lerpHex(lerpHex(sky.mid, accent, night * 0.02), zb.zone.skyMid, zoneMix * 0.68);
     const bot = lerpHex(lerpHex(sky.bot, this.bgStops[2] || '#0a0818', 0.08), zb.zone.skyBot, zoneMix * 0.75);
 
-    const horizonDeep = lerpHex(bot, '#020304', 0.22 + night * 0.52);
-    const horizonFloor = lerpHex(bot, '#010102', 0.38 + night * 0.48);
+    const climbShade = Math.min(1, this.altitudeMeters / 100);
+    const zenith = lerpHex(top, '#010204', Math.max(cosmic * 0.92, night * 0.62 + climbShade * 0.22));
+    const upperMid = lerpHex(mid, '#060a14', Math.max(cosmic * 0.55, night * 0.38 + climbShade * 0.15));
+    const lowerMid = lerpHex(mid, '#0a1020', Math.max(cosmic * 0.32, night * 0.22 + climbShade * 0.1));
+    const horizon = lerpHex(bot, '#161e30', Math.max(0.08, night * 0.18 - climbShade * 0.06));
     const g = ctx.createLinearGradient(0, 0, 0, this.h);
-    g.addColorStop(0, lerpHex(top, '#020308', Math.max(cosmic * 0.92, night * 0.65)));
-    g.addColorStop(0.25, lerpHex(mid, '#060a14', Math.max(cosmic * 0.6, night * 0.45)));
-    g.addColorStop(0.5, lerpHex(mid, '#050810', Math.max(cosmic * 0.42, night * 0.38)));
-    g.addColorStop(0.68, lerpHex(bot, '#04060c', Math.max(cosmic * 0.32, night * 0.42)));
-    g.addColorStop(0.84, horizonDeep);
-    g.addColorStop(1, horizonFloor);
+    g.addColorStop(0, zenith);
+    g.addColorStop(0.24, upperMid);
+    g.addColorStop(0.52, lowerMid);
+    g.addColorStop(0.8, lerpHex(bot, '#101828', night * 0.14 + climbShade * 0.08));
+    g.addColorStop(1, horizon);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
 
     if (night > 0.08) {
-      const vibe = ctx.createRadialGradient(this.w * 0.5, this.h * 0.28, 0, this.w * 0.5, this.h * 0.32, this.w * 0.82);
-      vibe.addColorStop(0, lerpHex('#101428', accent2, 0.1) + '18');
-      vibe.addColorStop(0.5, lerpHex('#080c18', accent, 0.06) + '08');
+      const vibe = ctx.createRadialGradient(this.w * 0.5, this.h * 0.18, 0, this.w * 0.5, this.h * 0.22, this.w * 0.72);
+      vibe.addColorStop(0, lerpHex('#101428', accent2, 0.1) + '14');
+      vibe.addColorStop(0.55, lerpHex('#080c18', accent, 0.06) + '06');
       vibe.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = vibe;
-      ctx.fillRect(0, 0, this.w, this.h * 0.62);
+      ctx.fillRect(0, 0, this.w, this.h * 0.5);
     }
 
     this._drawMotes(ctx, rise, alt, cosmic, t);
@@ -4112,7 +4114,7 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=7b0c39fd').then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=e01dcd45').then((reg) => {
       reg.update();
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', () => {
